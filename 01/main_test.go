@@ -17,3 +17,14 @@ func TestPhaseOne(t *testing.T) {
 	res := solution.ComputeSolutionOne([]byte(teststring))
 	assert.Equal(t, int64(11), res)
 }
+
+func TestPHaseTwo(t *testing.T) {
+	teststring := `3   4
+4   3
+2   5
+1   3
+3   9
+3   3`
+	res := solution.ComputeSolutionTwo([]byte(teststring))
+	assert.Equal(t, int64(31), res)
+}

@@ -55,3 +55,17 @@ func ComputeSolutionOne(data []byte) int64 {
 	}
 	return accumulator
 }
+
+func ComputeSolutionTwo(data []byte) int64 {
+	parsed := parseData(data)
+	appearanceCounts := map[int64]int64{}
+	// get our right list counts
+	for _, p := range parsed {
+		appearanceCounts[p.Right] += 1
+	}
+	acc := int64(0)
+	for _, p := range parsed {
+		acc += (p.Left * appearanceCounts[p.Left])
+	}
+	return acc
+}

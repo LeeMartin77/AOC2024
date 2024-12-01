@@ -15,4 +15,8 @@ func main() {
 	res := solution.ComputeSolutionOne(data)
 
 	fmt.Printf("Solution One: %d\n", res)
+
+	res2 := solution.ComputeSolutionTwo(data)
+
+	fmt.Printf("Solution Two: %d\n", res2)
 }
