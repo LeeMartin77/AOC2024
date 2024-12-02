@@ -65,5 +65,29 @@ func gradient(a, b int64) int {
 }
 
 func ComputeSolutionTwo(data []byte) int64 {
-	panic("not implemented")
+	parsed := parseData(data)
+	accumulator := int64(0)
+outer:
+	for _, p := range parsed {
+		if isSafe(p) {
+			accumulator += 1
+			continue
+		}
+		// check if removing a single item makes it safe
+		// this is so dumb
+		for i := range p {
+			variant := []int64{}
+			for ii, pp := range p {
+				if i == ii {
+					continue
+				}
+				variant = append(variant, pp)
+			}
+			if isSafe(variant) {
+				accumulator += 1
+				continue outer
+			}
+		}
+	}
+	return accumulator
 }
