@@ -1,6 +1,7 @@
 package solution
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -84,6 +85,23 @@ func (re *RulesEngine) IsIntructionValid(pi PrintingInstruction) bool {
 	}
 	return true
 }
+func (re *RulesEngine) FixInstruction(pi PrintingInstruction) []int64 {
+	sl := pi.Slice
+	slices.SortFunc(sl, func(fpg int64, fgp2 int64) int {
+		for _, prc := range re.Rules[fpg].MustPreceed {
+			if prc == fgp2 {
+				return 1
+			}
+		}
+		for _, prc := range re.Rules[fpg].MustFollow {
+			if prc == fgp2 {
+				return -1
+			}
+		}
+		return 0
+	})
+	return sl
+}
 
 func ComputeSolutionOne(data []byte) int64 {
 	re, pi := parseRawData(data)
@@ -97,5 +115,13 @@ func ComputeSolutionOne(data []byte) int64 {
 }
 
 func ComputeSolutionTwo(data []byte) int64 {
-	panic("unimplemented")
+	re, pi := parseRawData(data)
+	acc := int64(0)
+	for _, p := range pi {
+		if !re.IsIntructionValid(p) {
+			corrected := re.FixInstruction(p)
+			acc += corrected[len(corrected)/2]
+		}
+	}
+	return acc
 }
