@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type possibleEquation struct {
@@ -92,11 +93,17 @@ func ComputeSolutionOne(data []byte) int64 {
 func ComputeSolutionTwo(data []byte) int64 {
 	eqs := parseData(data)
 	acc := int64(0)
+	wg := sync.WaitGroup{}
 	for _, eq := range eqs {
-		_, err := eq.FindSolutionOperators([]rune{'+', '*', '|'})
-		if err == nil {
-			acc += eq.Solution
-		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err := eq.FindSolutionOperators([]rune{'+', '*', '|'})
+			if err == nil {
+				acc += eq.Solution
+			}
+		}()
 	}
+	wg.Wait()
 	return acc
 }
