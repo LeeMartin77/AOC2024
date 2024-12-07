@@ -38,25 +38,32 @@ func (eq possibleEquation) OperatorsMakeSolution(opset []rune) bool {
 			acc += eq.Inputs[i+1]
 		case '*':
 			acc *= eq.Inputs[i+1]
+		case '|':
+			vl, _ := strconv.ParseInt(fmt.Sprintf("%d%d", acc, eq.Inputs[i+1]), 10, 64)
+			acc = vl
 		}
 	}
 	return acc == eq.Solution
 }
 
-func (eq possibleEquation) FindSolutionAddMul() ([]rune, error) {
+func (eq possibleEquation) FindSolutionOperators(ops []rune) ([]rune, error) {
 	var possible_op_sets [][]rune
 	n := len(eq.Inputs) - 1
+	numreps := len(ops)
 
-	totalCombinations := 1 << n
+	totalCombinations := 1
+	for i := 0; i < n; i++ {
+		totalCombinations *= numreps
+	}
 
 	for i := 0; i < totalCombinations; i++ {
 		var variant []rune
+		temp := i
 		for j := 0; j < n; j++ {
-			if i&(1<<j) != 0 {
-				variant = append(variant, '*')
-			} else {
-				variant = append(variant, '+')
-			}
+			// Determine the index of the replacement for this position
+			replacementIndex := temp % numreps
+			variant = append(variant, ops[replacementIndex])
+			temp /= numreps
 		}
 		possible_op_sets = append(possible_op_sets, variant)
 	}
@@ -74,7 +81,7 @@ func ComputeSolutionOne(data []byte) int64 {
 	eqs := parseData(data)
 	acc := int64(0)
 	for _, eq := range eqs {
-		_, err := eq.FindSolutionAddMul()
+		_, err := eq.FindSolutionOperators([]rune{'+', '*'})
 		if err == nil {
 			acc += eq.Solution
 		}
@@ -83,5 +90,13 @@ func ComputeSolutionOne(data []byte) int64 {
 }
 
 func ComputeSolutionTwo(data []byte) int64 {
-	panic("unimplemented")
+	eqs := parseData(data)
+	acc := int64(0)
+	for _, eq := range eqs {
+		_, err := eq.FindSolutionOperators([]rune{'+', '*', '|'})
+		if err == nil {
+			acc += eq.Solution
+		}
+	}
+	return acc
 }
