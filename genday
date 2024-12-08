@@ -1,0 +1,26 @@
+#!/bin/bash
+
+if [ "$1" = '' ]; then
+	echo "Must enter a day to create"
+    exit 1
+fi
+
+if ls "$1"; then 
+	echo "Directory already exists"
+    exit 1
+else
+	echo "Creating $1"
+fi
+
+cp -r 00 $1
+
+DIRECTORY="$1"
+
+for FILE in "$DIRECTORY"/*; do
+  if [ -f "$FILE" ]; then
+    sed -i "s|/00/|/$1/|g" "$FILE"
+    echo "Processed: $FILE"
+  fi
+done
+
+echo "All files in $DIRECTORY have been processed."
