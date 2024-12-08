@@ -100,5 +100,44 @@ func DebugMapAntinodes(amp antennaMap, allantinoces [][]int) {
 }
 
 func ComputeSolutionTwo(data []byte) int64 {
-	panic("unimplemented")
+	amp := parseMap(data)
+	antinodes := map[rune][][]int{}
+
+	for rn, cords := range amp.AntennaCoordinateLookup {
+		for len(cords) > 1 {
+			crd, cords2 := cords[0], cords[1:]
+			for _, crd2 := range cords2 {
+
+				dist := []int{crd[0] - crd2[0], crd[1] - crd2[1]}
+
+				an1 := []int{crd[0] + dist[0], crd[1] + dist[1]}
+				an2 := []int{an1[0] - dist[0], an1[1] - dist[1]}
+				for (an1[0] >= 0 && an1[0] <= amp.MaxX && an1[1] >= 0 && an1[1] <= amp.MaxY) || (an2[0] >= 0 && an2[0] <= amp.MaxX && an2[1] >= 0 && an2[1] <= amp.MaxY) {
+					if an1[0] >= 0 && an1[0] <= amp.MaxX && an1[1] >= 0 && an1[1] <= amp.MaxY {
+						antinodes[rn] = append(antinodes[rn], an1)
+					}
+					if an2[0] >= 0 && an2[0] <= amp.MaxX && an2[1] >= 0 && an2[1] <= amp.MaxY {
+						antinodes[rn] = append(antinodes[rn], an2)
+					}
+					an1 = []int{an1[0] + dist[0], an1[1] + dist[1]}
+					an2 = []int{an2[0] - dist[0], an2[1] - dist[1]}
+				}
+			}
+			cords = cords2
+		}
+	}
+
+	allantinoces := [][]int{}
+	for _, ans := range antinodes {
+		for _, an := range ans {
+			if !slices.ContainsFunc(allantinoces, func(crd []int) bool {
+				return crd[0] == an[0] && crd[1] == an[1]
+			}) {
+				allantinoces = append(allantinoces, an)
+			}
+		}
+	}
+	//DebugMapAntinodes(amp, allantinoces)
+
+	return int64(len(allantinoces))
 }
