@@ -106,70 +106,48 @@ func defragmentDisk(dsk disk) []int64 {
 
 func defragmentFiles(dsk disk) []int64 {
 	dfrgd := make([]int64, len(dsk.OriginalSectors))
+	src := make([]int64, len(dsk.OriginalSectors))
 	for i := range dfrgd {
-		dfrgd[i] = -1
+		dfrgd[i] = dsk.OriginalSectors[i]
+		src[i] = dsk.OriginalSectors[i]
 	}
-	for {
-		fmt.Println(dsk.FileBlocks)
-		fmt.Println(dsk.SpaceBlocks)
-		if len(dsk.FileBlocks) == 1 {
-			// last one, just put in place
-			for i := range dsk.FileBlocks[0].Length {
-				dfrgd[dsk.FileBlocks[0].StartIndex+i] = dsk.FileBlocks[0].Id
-			}
-			break
-		}
-		var fblk Block
-		if len(dsk.FileBlocks) == 2 {
-			dsk.FileBlocks, fblk = []Block{dsk.FileBlocks[0]}, dsk.FileBlocks[1]
-		} else {
-			dsk.FileBlocks, fblk = dsk.FileBlocks[:len(dsk.FileBlocks)-1], dsk.FileBlocks[len(dsk.FileBlocks)-1]
-		}
-		moved := false
-		for i, spc := range dsk.SpaceBlocks {
-			if spc.Length == fblk.Length {
-				// insert in place and remove space
+	// fuck it, we go dumb.
+	backint := 1
+	fileCollection := []int64{}
+	var nxt int64
+	for backint < len(dfrgd) && len(src) > 1 {
+		nxt, src = src[len(src)-backint], src[len(src)-backint:]
 
-				if i == 0 && len(dsk.SpaceBlocks) > 1 {
-					dsk.SpaceBlocks = dsk.SpaceBlocks[i+1:]
-				} else if i == 0 && len(dsk.SpaceBlocks) == 1 {
-					dsk.SpaceBlocks = []Block{}
+		if len(fileCollection) > 0 && (nxt == -1 || nxt != fileCollection[0]) {
+			// end of file
+			// write buffered file to first available "slot"
+			ln := 0
+			idx := 0
+			for i, c := range dfrgd {
+				if c == -1 {
+					ln += 1
+					if ln == len(fileCollection) {
+						for iii, c := range dfrgd {
+							if c == fileCollection[0] {
+								dfrgd[iii] = -1
+							}
+						}
+						for ii := range len(fileCollection) {
+							dfrgd[ii+idx] = fileCollection[0]
+						}
+					}
 				} else {
-					dsk.SpaceBlocks = append(dsk.SpaceBlocks[:i-1], dsk.SpaceBlocks[i+1:]...)
+					idx = i
+					ln = 0
 				}
-				for ii := range fblk.Length {
-					dfrgd[spc.StartIndex+ii] = fblk.Id
-				}
-				moved = true
-
 			}
-			if spc.Length > fblk.Length {
-				// insert and then size down/"move" space
-				for ii := range fblk.Length {
-					dfrgd[spc.StartIndex+ii] = fblk.Id
-				}
-				dsk.SpaceBlocks[i].Length = dsk.SpaceBlocks[i].Length - fblk.Length
-				dsk.SpaceBlocks[i].StartIndex = dsk.SpaceBlocks[i].StartIndex + fblk.Length
-
-				moved = true
-
-			}
-			if moved {
-				// insert a free block at the location then break
-				dsk.SpaceBlocks = append(dsk.SpaceBlocks, Block{
-					Id:         -1,
-					StartIndex: fblk.StartIndex,
-					Length:     fblk.Length,
-				})
-				break
+			fileCollection = []int64{}
+		} else {
+			if nxt != -1 {
+				fileCollection = append(fileCollection, nxt)
 			}
 		}
-		if !moved {
-			// insert in original position
-			for i := range fblk.Length {
-				dfrgd[fblk.StartIndex+i] = fblk.Id
-			}
-		}
+		backint -= 1
 	}
 	return dfrgd
 }
