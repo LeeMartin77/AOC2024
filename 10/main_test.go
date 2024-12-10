@@ -20,8 +20,15 @@ func TestPhaseOne(t *testing.T) {
 	assert.Equal(t, int64(36), res)
 }
 
-func xTestPhaseTwo(t *testing.T) {
-	teststring := ``
+func TestPhaseTwo(t *testing.T) {
+	teststring := `89010123
+78121874
+87430965
+96549874
+45678903
+32019012
+01329801
+10456732`
 	res := solution.ComputeSolutionTwo([]byte(teststring))
-	assert.Equal(t, int64(0), res)
+	assert.Equal(t, int64(81), res)
 }

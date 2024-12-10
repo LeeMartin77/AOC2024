@@ -85,5 +85,13 @@ func ComputeSolutionOne(data []byte) int64 {
 }
 
 func ComputeSolutionTwo(data []byte) int64 {
-	panic("unimplemented")
+	tm := parseMap(data)
+
+	acc := int64(0)
+	for _, th := range tm.TrailHeads {
+
+		src := recurTrailFinishes(th, tm.FullMap)
+		acc += int64(len(src))
+	}
+	return acc
 }
