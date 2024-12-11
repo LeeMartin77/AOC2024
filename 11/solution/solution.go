@@ -66,20 +66,32 @@ func blinkRecursive(stn int64, iteration int, iteration_limit int) int64 {
 	return acc
 }
 
+func blinkMap(inp map[int64]int64) map[int64]int64 {
+	outmp := map[int64]int64{}
+	for stn, cnt := range inp {
+		outstns := blink([]int64{stn})
+		for _, stn := range outstns {
+			outmp[stn] += cnt
+		}
+	}
+	return outmp
+}
+
 func computeIterations(data []byte, num int) int64 {
 	stns := parseStones(data)
 	acc := int64(0)
 
-	wg := sync.WaitGroup{}
+	stonemap := map[int64]int64{}
 	for _, stn := range stns {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			acc += blinkRecursive(stn, 0, num)
-
-		}()
+		stonemap[stn] += 1
 	}
-	wg.Wait()
+
+	for range num {
+		stonemap = blinkMap(stonemap)
+	}
+	for _, cnt := range stonemap {
+		acc += cnt
+	}
 	return acc
 }
 

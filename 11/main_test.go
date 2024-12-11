@@ -13,7 +13,7 @@ func TestPhaseOne(t *testing.T) {
 	assert.Equal(t, int64(55312), res)
 }
 
-func xTestPhaseTwo(t *testing.T) {
+func TestPhaseTwo(t *testing.T) {
 	teststring := `125 17`
 	solution.ComputeSolutionTwo([]byte(teststring))
 	// honestly the test is if this completes before the heat death of the universe
