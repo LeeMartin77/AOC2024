@@ -66,7 +66,7 @@ func blinkRecursive(stn int64, iteration int, iteration_limit int) int64 {
 	return acc
 }
 
-func ComputeSolutionOne(data []byte) int64 {
+func computeIterations(data []byte, num int) int64 {
 	stns := parseStones(data)
 	acc := int64(0)
 
@@ -75,7 +75,7 @@ func ComputeSolutionOne(data []byte) int64 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			acc += blinkRecursive(stn, 0, 25)
+			acc += blinkRecursive(stn, 0, num)
 
 		}()
 	}
@@ -83,19 +83,11 @@ func ComputeSolutionOne(data []byte) int64 {
 	return acc
 }
 
+func ComputeSolutionOne(data []byte) int64 {
+	return computeIterations(data, 25)
+}
+
 func ComputeSolutionTwo(data []byte) int64 {
-	stns := parseStones(data)
-	acc := int64(0)
+	return computeIterations(data, 75)
 
-	wg := sync.WaitGroup{}
-	for _, stn := range stns {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			acc += blinkRecursive(stn, 0, 75)
-
-		}()
-	}
-	wg.Wait()
-	return acc
 }
