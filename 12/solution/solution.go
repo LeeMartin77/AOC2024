@@ -51,8 +51,129 @@ func (r Region) GetPerimeter() int64 {
 	return acc
 }
 
+func (r Region) GetSides() int64 {
+	// early lazy exits
+	if len(r.Coordinates) == 1 {
+		return 4
+	}
+	if len(r.Coordinates) == 2 {
+		return 4
+	}
+
+	crdmp := map[int]map[int]bool{}
+	// this is dumb, I don't care
+	minx := -1
+	maxx := 0
+	miny := -1
+	maxy := 0
+	for _, crd := range r.Coordinates {
+		crdmp[crd[0]] = map[int]bool{}
+	}
+	for _, crd := range r.Coordinates {
+		crdmp[crd[0]][crd[1]] = true
+		if minx == -1 || minx > crd[0] {
+			minx = crd[0]
+		}
+		if maxx < crd[0] {
+			maxx = crd[0]
+		}
+		if miny == -1 || miny > crd[1] {
+			miny = crd[1]
+		}
+		if maxy < crd[1] {
+			maxy = crd[1]
+		}
+	}
+
+	acc := int64(0)
+	col := minx
+	for { // because we always need at least one iteration
+		hadsquare := false
+		sds := int64(0)
+		sidestarted := false
+		rw := miny
+		orientation := 0
+		for range (maxy - miny) + 1 {
+			if !hadsquare && crdmp[col][rw] {
+				hadsquare = true
+			}
+			if crdmp[col-1][rw] != crdmp[col][rw] {
+				if !sidestarted {
+					sidestarted = true
+					sds += 1
+				}
+				sord := orientation
+				if crdmp[col-1][rw] {
+					orientation = -1
+				} else {
+					orientation = 1
+				}
+				if sord != 0 && orientation != sord {
+					sds += 1
+				}
+			} else {
+				if sidestarted {
+					sidestarted = false
+					orientation = 0
+				}
+			}
+			rw += 1
+		}
+		acc += sds
+		if !hadsquare {
+			break
+		}
+		col += 1
+	}
+
+	rw := miny
+	for { // because we always need at least one iteration
+		hadsquare := false
+		sds := int64(0)
+		sidestarted := false
+		col := minx
+		orientation := 0
+		for range (maxx - minx) + 1 {
+			if !hadsquare && crdmp[col][rw] {
+				hadsquare = true
+			}
+			if crdmp[col][rw-1] != crdmp[col][rw] {
+				if !sidestarted {
+					sidestarted = true
+					sds += 1
+				}
+				sord := orientation
+				if crdmp[col][rw-1] {
+					orientation = -1
+				} else {
+					orientation = 1
+				}
+				if sord != 0 && orientation != sord {
+					sds += 1
+				}
+			} else {
+				if sidestarted {
+					sidestarted = false
+					orientation = 0
+				}
+			}
+			col += 1
+		}
+		acc += sds
+		if !hadsquare {
+			break
+		}
+		rw += 1
+	}
+	return acc
+}
+
 func (r Region) GetPrice() int64 {
 	return r.GetArea() * r.GetPerimeter()
+}
+
+func (r Region) GetBulkPrice() int64 {
+	return r.GetArea() * r.GetSides()
 }
 
 func ParseRegions(data []byte) []Region {
@@ -127,5 +248,10 @@ func ComputeSolutionOne(data []byte) int64 {
 }
 
 func ComputeSolutionTwo(data []byte) int64 {
-	panic("unimplemented")
+	rgns := ParseRegions(data)
+	acc := int64(0)
+	for _, rgn := range rgns {
+		acc += rgn.GetBulkPrice()
+	}
+	return acc
 }

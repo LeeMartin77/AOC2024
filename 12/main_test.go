@@ -26,16 +26,25 @@ MMMISSJEEE`
 			assert.Equal(t, int64(12), rg.GetArea())
 			assert.Equal(t, int64(18), rg.GetPerimeter())
 			assert.Equal(t, int64(216), rg.GetPrice())
+
+			assert.Equal(t, int64(10), rg.GetSides())
+			assert.Equal(t, int64(120), rg.GetBulkPrice())
 		}
 		if rg.Rune == 'F' {
 			assert.Equal(t, int64(10), rg.GetArea())
 			assert.Equal(t, int64(18), rg.GetPerimeter())
 			assert.Equal(t, int64(180), rg.GetPrice())
+
+			assert.Equal(t, int64(12), rg.GetSides())
+			assert.Equal(t, int64(120), rg.GetBulkPrice())
 		}
 		if rg.Rune == 'M' {
 			assert.Equal(t, int64(5), rg.GetArea())
 			assert.Equal(t, int64(12), rg.GetPerimeter())
 			assert.Equal(t, int64(60), rg.GetPrice())
+
+			assert.Equal(t, int64(6), rg.GetSides())
+			assert.Equal(t, int64(30), rg.GetBulkPrice())
 		}
 	}
 }
@@ -55,8 +64,47 @@ MMMISSJEEE`
 	assert.Equal(t, int64(1930), res)
 }
 
-func xTestPhaseTwo(t *testing.T) {
-	teststring := ``
+func TestPhaseTwo(t *testing.T) {
+	teststring := `RRRRIICCFF
+RRRRIICCCF
+VVRRRCCFFF
+VVRCCCJFFF
+VVVVCJJCFE
+VVIVCCJJEE
+VVIIICJJEE
+MIIIIIJJEE
+MIIISIJEEE
+MMMISSJEEE`
 	res := solution.ComputeSolutionTwo([]byte(teststring))
-	assert.Equal(t, int64(0), res)
+	assert.Equal(t, int64(1206), res)
+}
+
+func TestPhaseTwo_One(t *testing.T) {
+	teststring := `AAAA
+BBCD
+BBCC
+EEEC`
+	res := solution.ComputeSolutionTwo([]byte(teststring))
+	assert.Equal(t, int64(80), res)
+}
+
+func TestPhaseTwo_E(t *testing.T) {
+	teststring := `EEEEE
+EXXXX
+EEEEE
+EXXXX
+EEEEE`
+	res := solution.ComputeSolutionTwo([]byte(teststring))
+	assert.Equal(t, int64(236), res)
+}
+
+func TestPhaseTwo_Mobius(t *testing.T) {
+	teststring := `AAAAAA
+AAABBA
+AAABBA
+ABBAAA
+ABBAAA
+AAAAAA`
+	res := solution.ComputeSolutionTwo([]byte(teststring))
+	assert.Equal(t, int64(368), res)
 }
