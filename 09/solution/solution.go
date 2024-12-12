@@ -1,7 +1,6 @@
 package solution
 
 import (
-	"fmt"
 	"strconv"
 )
 
@@ -106,48 +105,42 @@ func defragmentDisk(dsk disk) []int64 {
 
 func defragmentFiles(dsk disk) []int64 {
 	dfrgd := make([]int64, len(dsk.OriginalSectors))
-	src := make([]int64, len(dsk.OriginalSectors))
 	for i := range dfrgd {
-		dfrgd[i] = dsk.OriginalSectors[i]
-		src[i] = dsk.OriginalSectors[i]
+		dfrgd[i] = -1
 	}
-	// fuck it, we go dumb.
-	backint := 1
-	fileCollection := []int64{}
-	var nxt int64
-	for backint < len(dfrgd) && len(src) > 1 {
-		nxt, src = src[len(src)-backint], src[len(src)-backint:]
-
-		if len(fileCollection) > 0 && (nxt == -1 || nxt != fileCollection[0]) {
-			// end of file
-			// write buffered file to first available "slot"
-			ln := 0
-			idx := 0
-			for i, c := range dfrgd {
-				if c == -1 {
-					ln += 1
-					if ln == len(fileCollection) {
-						for iii, c := range dfrgd {
-							if c == fileCollection[0] {
-								dfrgd[iii] = -1
-							}
-						}
-						for ii := range len(fileCollection) {
-							dfrgd[ii+idx] = fileCollection[0]
-						}
-					}
-				} else {
-					idx = i
-					ln = 0
-				}
+	reversedfiles := make([]Block, len(dsk.FileBlocks))
+	ln := len(dsk.FileBlocks)
+	i := 0
+	for ln > 0 {
+		ln -= 1
+		reversedfiles[i] = dsk.FileBlocks[ln]
+		i += 1
+	}
+	for _, fl := range reversedfiles {
+		placed := false
+		for i, empty := range dsk.SpaceBlocks {
+			if fl.StartIndex < empty.StartIndex {
+				// jump out because we've passed
+				break
 			}
-			fileCollection = []int64{}
-		} else {
-			if nxt != -1 {
-				fileCollection = append(fileCollection, nxt)
+			if empty.Length >= fl.Length {
+				dsk.SpaceBlocks[i] = Block{
+					Id:         -1,
+					Length:     empty.Length - fl.Length,
+					StartIndex: empty.StartIndex + fl.Length,
+				}
+				for i := range fl.Length {
+					dfrgd[i+empty.StartIndex] = fl.Id
+				}
+				placed = true
+				break
 			}
 		}
-		backint -= 1
+		if !placed {
+			for i := range fl.Length {
+				dfrgd[i+fl.StartIndex] = fl.Id
+			}
+		}
 	}
 	return dfrgd
 }
@@ -171,9 +164,7 @@ func ComputeSolutionOne(data []byte) int64 {
 
 func ComputeSolutionTwo(data []byte) int64 {
 	dsk := parseDisk(data)
-	fmt.Println(dsk.OriginalSectors)
 	defragged := defragmentFiles(dsk)
-	fmt.Println(defragged)
 	res := generateChecksum(defragged)
 	return res
 }
