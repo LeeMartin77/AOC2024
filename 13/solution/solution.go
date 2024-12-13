@@ -11,7 +11,7 @@ type clawMachine struct {
 	PrizeLocation []int64
 }
 
-func parseMachines(data []byte) []clawMachine {
+func parseMachines(data []byte, prizeOffset int64) []clawMachine {
 	res := []clawMachine{}
 	str := string(data)
 	mchn := clawMachine{}
@@ -41,52 +41,31 @@ func parseMachines(data []byte) []clawMachine {
 			x, _ := strconv.ParseInt(xprts[1], 10, 64)
 			yprts := strings.Split(prts[1], "=")
 			y, _ := strconv.ParseInt(yprts[1], 10, 64)
-			mchn.PrizeLocation = []int64{x, y}
+			mchn.PrizeLocation = []int64{x + prizeOffset, y + prizeOffset}
 		}
 	}
 	return res
 }
 
 func (mchn clawMachine) TokensForVictory() int64 {
+	// I won't lie, I stole this, because I can't do advanced math
+	// Do some research into linear algebra and matrix maths
+	ax, ay := mchn.ButtonA[0], mchn.ButtonA[1]
+	bx, by := mchn.ButtonB[0], mchn.ButtonB[1]
+	px, py := mchn.PrizeLocation[0], mchn.PrizeLocation[1]
 
-	a_tokens := int64(3)
-	b_tokens := int64(1)
-
-	solution_map := map[int64]map[int64]bool{}
-
-	for a := range int64(101) {
-		x := a * mchn.ButtonA[0]
-		y := a * mchn.ButtonA[1]
-		for b := range int64(101) {
-			xb := x
-			yb := y
-			xb += b * mchn.ButtonB[0]
-			yb += b * mchn.ButtonB[1]
-			if mchn.PrizeLocation[0] == xb && mchn.PrizeLocation[1] == yb {
-				if solution_map[a] == nil {
-					solution_map[a] = map[int64]bool{}
-				}
-				solution_map[a][b] = true
-			}
-		}
+	aCoeff := ax*by - ay*bx
+	rhs := px*by - py*bx
+	if rhs%aCoeff == 0 {
+		a := rhs / aCoeff
+		b := (px - ax*a) / bx
+		return a*3 + b
 	}
-
-	cheapest_solution := int64(0)
-	for a, bs := range solution_map {
-		for b, ys := range bs {
-			if ys {
-				sol := (a * a_tokens) + (b * b_tokens)
-				if cheapest_solution == 0 || sol < cheapest_solution {
-					cheapest_solution = sol
-				}
-			}
-		}
-	}
-	return cheapest_solution
+	return 0
 }
 
 func ComputeSolutionOne(data []byte) int64 {
-	mchns := parseMachines(data)
+	mchns := parseMachines(data, 0)
 	acc := int64(0)
 	for _, mchn := range mchns {
 		acc += mchn.TokensForVictory()
@@ -95,5 +74,10 @@ func ComputeSolutionOne(data []byte) int64 {
 }
 
 func ComputeSolutionTwo(data []byte) int64 {
-	panic("unimplemented")
+	mchns := parseMachines(data, 10000000000000)
+	acc := int64(0)
+	for _, mchn := range mchns {
+		acc += mchn.TokensForVictory()
+	}
+	return acc
 }
