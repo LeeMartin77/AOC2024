@@ -89,16 +89,11 @@ func DebugPositions(rbts []*robot, maxX, maxY int64) {
 	// 	fmt.Println(rbt.Position)
 	// }
 
-	fmt.Print(debugPosStr(rbts, maxX, maxY))
+	fmt.Print("---\n" + debugPosStr(rbts, maxX, maxY) + "---\n")
 }
 
 func debugPosStr(rbts []*robot, maxX, maxY int64) string {
-	// this can be crude
-	// for _, rbt := range rbts {
-	// 	fmt.Println(rbt.Position)
-	// }
-
-	res := "---\n"
+	res := ""
 	for y := range maxY + 1 {
 		for x := range maxX + 1 {
 			cnt := 0
@@ -115,7 +110,6 @@ func debugPosStr(rbts []*robot, maxX, maxY int64) string {
 		}
 		res += "\n"
 	}
-	res += "---\n"
 	return res
 }
 
@@ -137,29 +131,38 @@ func ComputeSolutionOne(data []byte) int64 {
 
 func ComputeSolutionTwo(data []byte) int64 {
 	rbts, maxX, maxY := ParseRobots(data)
-	for _, rbt := range rbts {
-		rbt.MoveTicks(7790, maxX, maxY)
+	bestres := ""
+	bestcoherence := 0
+	iteration := 0
+	for i := range 10000 {
+		for _, rbt := range rbts {
+			rbt.MoveTicks(1, maxX, maxY)
+		}
+		str := debugPosStr(rbts, maxX, maxY)
+		chrnc := 1
+		for _, ln := range strings.Split(str, "\n") {
+			max_continuous_nondots := 0
+			acc := 0
+			for _, rn := range ln {
+				if rn == '.' {
+					acc = 0
+				} else {
+					acc += 1
+					if acc > max_continuous_nondots {
+						max_continuous_nondots = acc
+					}
+				}
+			}
+			chrnc += max_continuous_nondots
+		}
+		if chrnc > bestcoherence {
+			bestres = str
+			bestcoherence = chrnc
+			iteration = i
+		}
 	}
-	DebugPositions(rbts, maxX, maxY)
 
-	// for ii := range 1000 {
+	fmt.Print(bestres)
 
-	// 	f, err := os.Create(fmt.Sprintf("./output/%06d.txt", ii))
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	defer f.Close()
-
-	// 	for i := range 100 {
-	// 		for _, rbt := range rbts {
-	// 			rbt.MoveTicks(1, maxX, maxY)
-	// 		}
-	// 		f.WriteString(fmt.Sprintf("Iteration: %d", (ii*100)+i+1))
-	// 		f.WriteString(debugPosStr(rbts, maxX, maxY))
-	// 		f.Sync()
-	// 	}
-
-	// }
-
-	return 7790
+	return int64(iteration + 1)
 }
