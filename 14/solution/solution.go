@@ -85,10 +85,20 @@ func (rbt *robot) GetQuadrant(limitX, limitY int64) int64 {
 
 func DebugPositions(rbts []*robot, maxX, maxY int64) {
 	// this can be crude
-	for _, rbt := range rbts {
-		fmt.Println(rbt.Position)
-	}
-	fmt.Println("---")
+	// for _, rbt := range rbts {
+	// 	fmt.Println(rbt.Position)
+	// }
+
+	fmt.Print(debugPosStr(rbts, maxX, maxY))
+}
+
+func debugPosStr(rbts []*robot, maxX, maxY int64) string {
+	// this can be crude
+	// for _, rbt := range rbts {
+	// 	fmt.Println(rbt.Position)
+	// }
+
+	res := "---\n"
 	for y := range maxY + 1 {
 		for x := range maxX + 1 {
 			cnt := 0
@@ -98,14 +108,15 @@ func DebugPositions(rbts []*robot, maxX, maxY int64) {
 				}
 			}
 			if cnt == 0 {
-				fmt.Print(".")
+				res += "."
 			} else {
-				fmt.Printf("%d", cnt)
+				res += fmt.Sprintf("%d", cnt)
 			}
 		}
-		fmt.Print("\n")
+		res += "\n"
 	}
-	fmt.Println("---")
+	res += "---\n"
+	return res
 }
 
 func ComputeSolutionOne(data []byte) int64 {
@@ -125,5 +136,30 @@ func ComputeSolutionOne(data []byte) int64 {
 }
 
 func ComputeSolutionTwo(data []byte) int64 {
-	panic("unimplemented")
+	rbts, maxX, maxY := ParseRobots(data)
+	for _, rbt := range rbts {
+		rbt.MoveTicks(7790, maxX, maxY)
+	}
+	DebugPositions(rbts, maxX, maxY)
+
+	// for ii := range 1000 {
+
+	// 	f, err := os.Create(fmt.Sprintf("./output/%06d.txt", ii))
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+	// 	defer f.Close()
+
+	// 	for i := range 100 {
+	// 		for _, rbt := range rbts {
+	// 			rbt.MoveTicks(1, maxX, maxY)
+	// 		}
+	// 		f.WriteString(fmt.Sprintf("Iteration: %d", (ii*100)+i+1))
+	// 		f.WriteString(debugPosStr(rbts, maxX, maxY))
+	// 		f.Sync()
+	// 	}
+
+	// }
+
+	return 7790
 }
