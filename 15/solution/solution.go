@@ -167,7 +167,3 @@ func ComputeSolutionOne(data []byte) int64 {
 
 	return int64(wrhs.generateGPSScore())
 }
-
-func ComputeSolutionTwo(data []byte) int64 {
-	panic("unimplemented")
-}
