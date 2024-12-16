@@ -206,13 +206,13 @@ func reconstruct_path(cameFrom map[string]string, current []int) [][]int {
 	return path
 }
 
-func edgecalc(current, neighbour, last string) int {
+func edgecalc(current, next, last string) int {
 	cur := cord_string(current)
 	if last == "" {
 		// if last == "" - edge case of the starting tile, "facing" east, meaning west of current
 		last = string_cord([]int{cur[0] - 1, cur[1]})
 	}
-	n, lst := cord_string(neighbour), cord_string(last)
+	n, lst := cord_string(next), cord_string(last)
 
 	// if backwards - massive penalty, 9999999999 cost
 	if n[0] == lst[0] && n[1] == lst[1] {
@@ -233,10 +233,10 @@ func heuristic(self string, goal []int) int {
 	// so we "worst case" this
 	self_cord := cord_string(self)
 	dist := math.Abs(float64(goal[0]-self_cord[0])) + math.Abs(float64(goal[1]-self_cord[1]))
-	return int(dist * 0.001)
+	return int(dist * 100)
 }
 
-func a_star(start []int, goal []int, maze map[int]map[int]bool) (int, [][]int) {
+func a_star(start []int, goal []int, maze map[int]map[int]bool, h func(string, []int) int) (int, [][]int) {
 	openset := []string{
 		string_cord(start),
 	}
@@ -252,7 +252,7 @@ func a_star(start []int, goal []int, maze map[int]map[int]bool) (int, [][]int) {
 	gScore[string_cord(start)] = 0
 
 	fscore := map[string]int{}
-	fscore[string_cord(start)] = heuristic(string_cord(start), goal)
+	fscore[string_cord(start)] = h(string_cord(start), goal)
 
 	for len(openset) > 0 {
 		current := openset[0]
@@ -285,7 +285,7 @@ func a_star(start []int, goal []int, maze map[int]map[int]bool) (int, [][]int) {
 			if tentative < gScore[neighbour] {
 				cameFrom[neighbour] = current
 				gScore[neighbour] = tentative
-				fscore[neighbour] = tentative + heuristic(neighbour, goal)
+				fscore[neighbour] = tentative + h(neighbour, goal)
 				if !slices.Contains(openset, neighbour) {
 					openset = append(openset, neighbour)
 				}
@@ -302,7 +302,47 @@ func a_star(start []int, goal []int, maze map[int]map[int]bool) (int, [][]int) {
 func ComputeSolutionOne(data []byte) int64 {
 	maze, start, exit, w, h := parseMaze(data)
 
-	scr, route := a_star(start, exit, maze)
+	most_expensive_destination := 0
+	destcosts := map[int]map[int]int{}
+
+	dests := make(chan []int)
+	donedests := make(chan struct{})
+
+	go func() {
+		for dst := range dests {
+			destcosts[dst[0]][dst[1]] = dst[2]
+			if dst[2] > most_expensive_destination {
+				most_expensive_destination = dst[2]
+			}
+		}
+		donedests <- struct{}{}
+	}()
+
+	wg := sync.WaitGroup{}
+	for x, mx := range maze {
+		destcosts[x] = map[int]int{}
+		for y := range mx {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				if x != exit[0] && y != exit[1] {
+					scr, _ := a_star(exit, []int{x, y}, maze, heuristic)
+					dests <- []int{x, y, scr}
+				}
+			}()
+		}
+	}
+	wg.Wait()
+	close(dests)
+	<-donedests
+
+	hh := func(self string, goal []int) int {
+		self_cord := cord_string(self)
+
+		return most_expensive_destination - destcosts[self_cord[0]][self_cord[1]]
+	}
+
+	scr, route := a_star(start, exit, maze, hh)
 
 	DebugMapAndLocations(maze, route, w, h)
 
