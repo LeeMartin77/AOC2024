@@ -3,6 +3,7 @@ package solution
 import (
 	"slices"
 	"strings"
+	"sync"
 )
 
 func parseMaze(data []byte) (map[int]map[int]bool, []int, []int) {
@@ -139,9 +140,28 @@ func recurrFlock(maze map[int]map[int]bool, exit []int, flock []reindeer, curren
 		}
 	}
 	future := []reindeer{}
+	wg := sync.WaitGroup{}
+	ftrchn := make(chan reindeer)
+	dnchn := make(chan struct{})
+	go func() {
+		for f := range ftrchn {
+			future = append(future, f)
+		}
+		dnchn <- struct{}{}
+	}()
 	for _, rnd := range remaining {
-		future = append(future, rnd.GenerateFuturePossibleReindeer(maze)...)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			ftr := rnd.GenerateFuturePossibleReindeer(maze)
+			for _, f := range ftr {
+				ftrchn <- f
+			}
+		}()
 	}
+	wg.Wait()
+	close(ftrchn)
+	<-dnchn
 	return recurrFlock(maze, exit, future, current_low_score)
 }
 
