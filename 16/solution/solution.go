@@ -1,6 +1,7 @@
 package solution
 
 import (
+	"slices"
 	"strings"
 )
 
@@ -38,72 +39,86 @@ type reindeer struct {
 	Score    int
 	TurnCost int
 	MoveCost int
+	History  [][]int
 }
 
-func NewReindeer(startpos []int, startfacing []int, startscore int, turncost int, movecost int) reindeer {
+func NewReindeer(startpos []int, startfacing []int, startscore int, turncost int, movecost int, history [][]int) reindeer {
 	return reindeer{
 		Position: startpos,
 		Facing:   startfacing,
 		Score:    startscore,
 		TurnCost: turncost,
 		MoveCost: movecost,
+		History:  history,
 	}
+}
+
+func (rnd reindeer) HasVisited(x, y int) bool {
+	// preventing loops
+	return slices.ContainsFunc(rnd.History, func(crd []int) bool {
+		return crd[0] == x && crd[1] == y
+	})
 }
 
 func (rnd reindeer) GenerateFuturePossibleReindeer(maze map[int]map[int]bool) []reindeer {
 	ftr := []reindeer{}
 	// straight ahead
-	if maze[rnd.Position[0]+rnd.Facing[0]][rnd.Position[1]+rnd.Facing[1]] {
+	if maze[rnd.Position[0]+rnd.Facing[0]][rnd.Position[1]+rnd.Facing[1]] && !rnd.HasVisited(rnd.Position[0]+rnd.Facing[0], rnd.Position[1]+rnd.Facing[1]) {
 		ftr = append(ftr, NewReindeer(
 			[]int{rnd.Position[0] + rnd.Facing[0], rnd.Position[1] + rnd.Facing[1]},
 			[]int{rnd.Facing[0], rnd.Facing[1]},
 			rnd.Score+rnd.MoveCost,
 			rnd.TurnCost,
 			rnd.MoveCost,
+			append(rnd.History, rnd.Position),
 		))
 	}
 	if rnd.Facing[0] == 0 {
 		// turning "left"
-		if maze[rnd.Position[0]-1][rnd.Position[1]] {
+		if maze[rnd.Position[0]-1][rnd.Position[1]] && !rnd.HasVisited(rnd.Position[0]-1, rnd.Position[1]) {
 			ftr = append(ftr, NewReindeer(
 				[]int{rnd.Position[0] - 1, rnd.Position[1]},
 				[]int{-1, 0},
 				rnd.Score+rnd.MoveCost+rnd.TurnCost,
 				rnd.TurnCost,
 				rnd.MoveCost,
+				append(rnd.History, rnd.Position),
 			))
 		}
 		// turning "right"
-		if maze[rnd.Position[0]+1][rnd.Position[1]] {
+		if maze[rnd.Position[0]+1][rnd.Position[1]] && !rnd.HasVisited(rnd.Position[0]+1, rnd.Position[1]) {
 			ftr = append(ftr, NewReindeer(
 				[]int{rnd.Position[0] + 1, rnd.Position[1]},
 				[]int{1, 0},
 				rnd.Score+rnd.MoveCost+rnd.TurnCost,
 				rnd.TurnCost,
 				rnd.MoveCost,
+				append(rnd.History, rnd.Position),
 			))
 		}
 	}
 	if rnd.Facing[0] != 0 {
 
 		// turning "left"
-		if maze[rnd.Position[0]][rnd.Position[1]-1] {
+		if maze[rnd.Position[0]][rnd.Position[1]-1] && !rnd.HasVisited(rnd.Position[0], rnd.Position[1]-1) {
 			ftr = append(ftr, NewReindeer(
 				[]int{rnd.Position[0], rnd.Position[1] - 1},
 				[]int{0, -1},
 				rnd.Score+rnd.MoveCost+rnd.TurnCost,
 				rnd.TurnCost,
 				rnd.MoveCost,
+				append(rnd.History, rnd.Position),
 			))
 		}
 		// turning "right"
-		if maze[rnd.Position[0]][rnd.Position[1]+1] {
+		if maze[rnd.Position[0]][rnd.Position[1]+1] && !rnd.HasVisited(rnd.Position[0], rnd.Position[1]+1) {
 			ftr = append(ftr, NewReindeer(
 				[]int{rnd.Position[0], rnd.Position[1] + 1},
 				[]int{0, +1},
 				rnd.Score+rnd.MoveCost+rnd.TurnCost,
 				rnd.TurnCost,
 				rnd.MoveCost,
+				append(rnd.History, rnd.Position),
 			))
 		}
 	}
@@ -135,7 +150,7 @@ func ComputeSolutionOne(data []byte) int64 {
 
 	current_low_score := 9999999999999
 
-	flock := []reindeer{NewReindeer(start, []int{1, 0}, 0, 1000, 1)}
+	flock := []reindeer{NewReindeer(start, []int{1, 0}, 0, 1000, 1, [][]int{start})}
 
 	low_score := recurrFlock(maze, exit, flock, current_low_score)
 
