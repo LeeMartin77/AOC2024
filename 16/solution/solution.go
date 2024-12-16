@@ -236,7 +236,7 @@ func heuristic(self string, goal []int) int {
 	return int(dist * 100)
 }
 
-func a_star(start []int, goal []int, maze map[int]map[int]bool, h func(string, []int) int) (int, [][]int) {
+func a_star(start []int, goal []int, maze map[int]map[int]bool, h func(string, []int) int, src []int) (int, [][]int) {
 	openset := []string{
 		string_cord(start),
 	}
@@ -281,7 +281,12 @@ func a_star(start []int, goal []int, maze map[int]map[int]bool, h func(string, [
 				continue
 			}
 			neighbour := string_cord(ncrd)
-			tentative := gScore[current] + edgecalc(current, neighbour, cameFrom[current])
+			cf := cameFrom[current]
+			if cf == "" {
+				// start - replace with src
+				cf = string_cord(src)
+			}
+			tentative := gScore[current] + edgecalc(current, neighbour, cf)
 			if tentative < gScore[neighbour] {
 				cameFrom[neighbour] = current
 				gScore[neighbour] = tentative
@@ -300,7 +305,7 @@ func a_star(start []int, goal []int, maze map[int]map[int]bool, h func(string, [
 }
 
 func ComputeSolutionOne(data []byte) int64 {
-	maze, start, exit, w, h := parseMaze(data)
+	maze, start, exit, _, _ := parseMaze(data)
 
 	most_expensive_destination := 0
 	destcosts := map[int]map[int]int{}
@@ -326,7 +331,7 @@ func ComputeSolutionOne(data []byte) int64 {
 			go func() {
 				defer wg.Done()
 				if x != exit[0] && y != exit[1] {
-					scr, _ := a_star(exit, []int{x, y}, maze, heuristic)
+					scr, _ := a_star(exit, []int{x, y}, maze, heuristic, []int{exit[0] - 1, exit[1]})
 					dests <- []int{x, y, scr}
 				}
 			}()
@@ -342,9 +347,9 @@ func ComputeSolutionOne(data []byte) int64 {
 		return most_expensive_destination - destcosts[self_cord[0]][self_cord[1]]
 	}
 
-	scr, route := a_star(start, exit, maze, hh)
+	scr, _ := a_star(start, exit, maze, hh, []int{start[0] - 1, start[1]})
 
-	DebugMapAndLocations(maze, route, w, h)
+	//DebugMapAndLocations(maze, route, w, h)
 
 	return int64(scr)
 }
@@ -373,62 +378,121 @@ func DebugMapAndLocations(maze map[int]map[int]bool, locs [][]int, w, h int) {
 func ComputeSolutionTwo(data []byte) int64 {
 	maze, start, exit, w, h := parseMaze(data)
 
-	current_low_score := 9999999999999
+	most_expensive_destination := 0
+	destcosts := map[int]map[int]int{}
 
-	flock := []reindeer{NewReindeer(start, []int{1, 0}, 0, 1000, 1, [][]int{start})}
+	dests := make(chan []int)
+	donedests := make(chan struct{})
 
-	possible_winners := []reindeer{}
-	ftrchn := make(chan reindeer)
-	dnchn := make(chan struct{})
-	wg := sync.WaitGroup{}
 	go func() {
-		for f := range ftrchn {
-			possible_winners = append(possible_winners, f)
+		for dst := range dests {
+			destcosts[dst[0]][dst[1]] = dst[2]
+			if dst[2] > most_expensive_destination {
+				most_expensive_destination = dst[2]
+			}
 		}
-		dnchn <- struct{}{}
+		donedests <- struct{}{}
 	}()
-	for range 10 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			poss_low_score := recurrFlock(maze, exit, flock, reindeer{Score: current_low_score})
-			ftrchn <- poss_low_score
-		}()
+
+	wg := sync.WaitGroup{}
+	for x, mx := range maze {
+		destcosts[x] = map[int]int{}
+		for y := range mx {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				if x != exit[0] && y != exit[1] {
+					scr, _ := a_star(exit, []int{x, y}, maze, heuristic, []int{exit[0] - 1, exit[1]})
+					dests <- []int{x, y, scr}
+				}
+			}()
+		}
 	}
 	wg.Wait()
-	close(ftrchn)
-	<-dnchn
-	lowest := 9999999999999999
-	winners := []reindeer{}
-	for _, rnd := range possible_winners {
-		if rnd.Score < lowest {
-			lowest = rnd.Score
-		}
+	close(dests)
+	<-donedests
+
+	hh := func(self string, goal []int) int {
+		self_cord := cord_string(self)
+
+		return most_expensive_destination - destcosts[self_cord[0]][self_cord[1]]
 	}
-	for _, rnd := range possible_winners {
-		if rnd.Score == lowest {
-			winners = append(winners, rnd)
+
+	_, route := a_star(start, exit, maze, hh, []int{start[0] - 1, start[1]})
+
+	all_points := fork_path(route, maze, destcosts, exit, hh, [][]int{}, []int{})
+
+	deduped_all_points := [][]int{}
+
+	for _, pnt := range all_points {
+		if !slices.ContainsFunc(deduped_all_points, func(ap []int) bool {
+			return ap[0] == pnt[0] && ap[1] == pnt[1]
+		}) {
+			deduped_all_points = append(deduped_all_points, pnt)
 		}
 	}
 
-	fmt.Println(len(winners))
+	DebugMapAndLocations(maze, deduped_all_points, w, h)
 
-	// get distinct visited locations
-	locs := [][]int{}
-	for _, rnd := range winners {
-		for _, lc := range rnd.History {
-			if !slices.ContainsFunc(locs, func(l []int) bool {
-				return l[0] == lc[0] && l[1] == lc[1]
-			}) {
-				locs = append(locs, lc)
+	return int64(len(deduped_all_points))
+}
+
+func fork_path(path [][]int, maze map[int]map[int]bool, dest_costs map[int]map[int]int, exit []int, hh func(self string, goal []int) int, checked [][]int, prev []int) [][]int {
+
+	if len(path) < 2 {
+		return append(checked, path...)
+	}
+	dirs := [][]int{
+		{0, 1},
+		{0, -1},
+		{1, 0},
+		{-1, 0},
+	}
+
+	cur_cord, path := path[0], path[1:]
+
+	checked = append(checked, cur_cord)
+
+	for _, dir := range dirs {
+		if len(prev) == 0 {
+			// this is just the first tile anyway
+			break
+		}
+		ncrd := []int{cur_cord[0] + dir[0], cur_cord[1] + dir[1]}
+		if !maze[ncrd[0]][ncrd[1]] {
+			// completely invalid move
+			continue
+		}
+		npth := path[0]
+		if npth[0] == ncrd[0] && npth[1] == ncrd[1] {
+			// it's the next cord anyway, just continue
+			continue
+		}
+		if !slices.ContainsFunc(checked, func(crd []int) bool {
+			return crd[0] == ncrd[0] && crd[1] == ncrd[1]
+		}) {
+			// do an a-star for ncrd to the end
+			newscore, route := a_star(ncrd, exit, maze, hh, prev)
+			oldscore, _ := a_star(npth, exit, maze, hh, prev)
+			// we aren't correctly accounting for "cornering" on these forks.
+			// if is_corner(prev, cur_cord, ncrd) {
+			// 	oldscore += 1001
+			// }
+			// if is_corner(prev, cur_cord, npth) {
+			// 	newscore += 1001
+			// }
+
+			if newscore <= oldscore {
+				sub_frk := fork_path(route, maze, dest_costs, exit, hh, checked, cur_cord)
+				checked = append(checked, sub_frk...)
 			}
 		}
 	}
-
-	// + exit
-	locs = append(locs, exit)
-
-	DebugMapAndLocations(maze, locs, w, h)
-
-	return int64(len(locs))
+	return fork_path(path, maze, dest_costs, exit, hh, checked, cur_cord)
 }
+
+// func is_corner(one, two, three []int) bool {
+// 	x := one[0] + two[0] + three[0]
+// 	y := one[1] + two[1] + three[1]
+// 	return x != 0 && y != 0
+// }

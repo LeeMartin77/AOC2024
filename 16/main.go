@@ -12,11 +12,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	res := solution.ComputeSolutionOne(data)
+	// res := solution.ComputeSolutionOne(data)
 
-	fmt.Printf("Solution One: %d\n", res)
+	// fmt.Printf("Solution One: %d\n", res)
 
-	// res2 := solution.ComputeSolutionTwo(data)
+	res2 := solution.ComputeSolutionTwo(data)
 
-	// fmt.Printf("Solution Two: %d\n", res2)
+	fmt.Printf("Solution Two: %d\n", res2)
 }

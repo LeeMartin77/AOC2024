@@ -49,7 +49,7 @@ func TestPhaseOneA(t *testing.T) {
 	assert.Equal(t, int64(11048), res)
 }
 
-func xTestPhaseTwo(t *testing.T) {
+func TestPhaseTwo(t *testing.T) {
 	teststring := `###############
 #.......#....E#
 #.#.###.#.###.#
@@ -69,7 +69,7 @@ func xTestPhaseTwo(t *testing.T) {
 	assert.Equal(t, int64(45), res)
 }
 
-func xTestPhaseTwoA(t *testing.T) {
+func TestPhaseTwoA(t *testing.T) {
 	teststring := `#################
 #...#...#...#..E#
 #.#.#.#.#.#.#.#.#
