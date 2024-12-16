@@ -1,20 +1,26 @@
 package solution
 
 import (
+	"fmt"
+	"math"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 )
 
-func parseMaze(data []byte) (map[int]map[int]bool, []int, []int) {
+func parseMaze(data []byte) (map[int]map[int]bool, []int, []int, int, int) {
 	maze := map[int]map[int]bool{}
 	start := []int{}
 	exit := []int{}
+	width := 0
+	height := 0
 	for y, ln := range strings.Split(string(data), "\n") {
 		if y == 0 {
 			for i := range len(ln) {
 				maze[i] = map[int]bool{}
 			}
+			width = len(ln)
 		}
 		for x, rn := range ln {
 			switch rn {
@@ -30,8 +36,9 @@ func parseMaze(data []byte) (map[int]map[int]bool, []int, []int) {
 				exit = []int{x, y}
 			}
 		}
+		height += 1
 	}
-	return maze, start, exit
+	return maze, start, exit, width, height
 }
 
 type reindeer struct {
@@ -98,7 +105,7 @@ func (rnd reindeer) GenerateFuturePossibleReindeer(maze map[int]map[int]bool) []
 			))
 		}
 	}
-	if rnd.Facing[0] != 0 {
+	if rnd.Facing[1] == 0 {
 
 		// turning "left"
 		if maze[rnd.Position[0]][rnd.Position[1]-1] && !rnd.HasVisited(rnd.Position[0], rnd.Position[1]-1) {
@@ -115,7 +122,7 @@ func (rnd reindeer) GenerateFuturePossibleReindeer(maze map[int]map[int]bool) []
 		if maze[rnd.Position[0]][rnd.Position[1]+1] && !rnd.HasVisited(rnd.Position[0], rnd.Position[1]+1) {
 			ftr = append(ftr, NewReindeer(
 				[]int{rnd.Position[0], rnd.Position[1] + 1},
-				[]int{0, +1},
+				[]int{0, 1},
 				rnd.Score+rnd.MoveCost+rnd.TurnCost,
 				rnd.TurnCost,
 				rnd.MoveCost,
@@ -181,24 +188,207 @@ func recurrFlock(maze map[int]map[int]bool, exit []int, flock []reindeer, curren
 	return recurrFlock(maze, exit, fastest, current_low_score)
 }
 
+func string_cord(cord []int) string {
+	return fmt.Sprintf("%d:%d", cord[0], cord[1])
+}
+func cord_string(str string) []int {
+	prts := strings.Split(str, ":")
+	x, _ := strconv.ParseInt(prts[0], 10, 32)
+	y, _ := strconv.ParseInt(prts[1], 10, 32)
+	return []int{int(x), int(y)}
+}
+
+func reconstruct_path(cameFrom map[string]string, current []int) [][]int {
+	path := [][]int{current}
+	for len(cameFrom[string_cord(path[0])]) > 0 {
+		path = append([][]int{cord_string(cameFrom[string_cord(path[0])])}, path...)
+	}
+	return path
+}
+
+func edgecalc(current, neighbour, last string) int {
+	cur := cord_string(current)
+	if last == "" {
+		// if last == "" - edge case of the starting tile, "facing" east, meaning west of current
+		last = string_cord([]int{cur[0] - 1, cur[1]})
+	}
+	n, lst := cord_string(neighbour), cord_string(last)
+
+	// if backwards - massive penalty, 9999999999 cost
+	if n[0] == lst[0] && n[1] == lst[1] {
+		return 999999999999
+	}
+
+	// if "turning", 1001 cost
+	dir_next := []int{cur[0] - n[0], cur[1] - n[1]}
+	dir_last := []int{lst[0] - cur[0], lst[1] - cur[1]}
+	if dir_next[0] != dir_last[0] || dir_next[1] != dir_last[1] {
+		return 1001
+	}
+	// if forwards, 1 cost
+	return 1
+}
+
+func heuristic(self string, goal []int) int {
+	// so we "worst case" this
+	self_cord := cord_string(self)
+	dist := math.Abs(float64(goal[0]-self_cord[0])) + math.Abs(float64(goal[1]-self_cord[1]))
+	return int(dist * 0.001)
+}
+
+func a_star(start []int, goal []int, maze map[int]map[int]bool) (int, [][]int) {
+	openset := []string{
+		string_cord(start),
+	}
+
+	cameFrom := map[string]string{}
+
+	gScore := map[string]int{}
+	for x, xm := range maze {
+		for y := range xm {
+			gScore[string_cord([]int{x, y})] = 9999999999999999
+		}
+	}
+	gScore[string_cord(start)] = 0
+
+	fscore := map[string]int{}
+	fscore[string_cord(start)] = heuristic(string_cord(start), goal)
+
+	for len(openset) > 0 {
+		current := openset[0]
+		if current == string_cord(goal) {
+			return gScore[current], reconstruct_path(cameFrom, goal)
+		}
+		newos := []string{}
+		for idx, str := range openset {
+			if idx != 0 {
+				newos = append(newos, str)
+			}
+		}
+		openset = newos
+		// for neighbours of current
+		dirs := [][]int{
+			{0, 1},
+			{0, -1},
+			{1, 0},
+			{-1, 0},
+		}
+		cur_cord := cord_string(current)
+		for _, dir := range dirs {
+			ncrd := []int{cur_cord[0] + dir[0], cur_cord[1] + dir[1]}
+			if !maze[ncrd[0]][ncrd[1]] {
+				// completely invalid move
+				continue
+			}
+			neighbour := string_cord(ncrd)
+			tentative := gScore[current] + edgecalc(current, neighbour, cameFrom[current])
+			if tentative < gScore[neighbour] {
+				cameFrom[neighbour] = current
+				gScore[neighbour] = tentative
+				fscore[neighbour] = tentative + heuristic(neighbour, goal)
+				if !slices.Contains(openset, neighbour) {
+					openset = append(openset, neighbour)
+				}
+			}
+		}
+		// sort openset
+		slices.SortFunc(openset, func(a, b string) int {
+			return fscore[a] - fscore[b]
+		})
+	}
+	panic("could not reach target")
+}
+
 func ComputeSolutionOne(data []byte) int64 {
-	maze, start, exit := parseMaze(data)
+	maze, start, exit, w, h := parseMaze(data)
+
+	scr, route := a_star(start, exit, maze)
+
+	DebugMapAndLocations(maze, route, w, h)
+
+	return int64(scr)
+}
+
+func DebugMapAndLocations(maze map[int]map[int]bool, locs [][]int, w, h int) {
+	fmt.Println("---")
+	for y := range h {
+		for x := range w {
+			if slices.ContainsFunc(locs, func(lc []int) bool {
+				return lc[0] == x && lc[1] == y
+			}) {
+				fmt.Print("o")
+				continue
+			}
+			if !maze[x][y] {
+				fmt.Print("#")
+			} else {
+				fmt.Print(".")
+			}
+		}
+		fmt.Print("\n")
+	}
+	fmt.Println("---")
+}
+
+func ComputeSolutionTwo(data []byte) int64 {
+	maze, start, exit, w, h := parseMaze(data)
 
 	current_low_score := 9999999999999
 
 	flock := []reindeer{NewReindeer(start, []int{1, 0}, 0, 1000, 1, [][]int{start})}
 
-	low_score := reindeer{Score: current_low_score}
+	possible_winners := []reindeer{}
+	ftrchn := make(chan reindeer)
+	dnchn := make(chan struct{})
+	wg := sync.WaitGroup{}
+	go func() {
+		for f := range ftrchn {
+			possible_winners = append(possible_winners, f)
+		}
+		dnchn <- struct{}{}
+	}()
 	for range 10 {
-		poss_low_score := recurrFlock(maze, exit, flock, reindeer{Score: current_low_score})
-		if poss_low_score.Score < low_score.Score {
-			low_score = poss_low_score
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			poss_low_score := recurrFlock(maze, exit, flock, reindeer{Score: current_low_score})
+			ftrchn <- poss_low_score
+		}()
+	}
+	wg.Wait()
+	close(ftrchn)
+	<-dnchn
+	lowest := 9999999999999999
+	winners := []reindeer{}
+	for _, rnd := range possible_winners {
+		if rnd.Score < lowest {
+			lowest = rnd.Score
+		}
+	}
+	for _, rnd := range possible_winners {
+		if rnd.Score == lowest {
+			winners = append(winners, rnd)
 		}
 	}
 
-	return int64(low_score.Score)
-}
+	fmt.Println(len(winners))
 
-func ComputeSolutionTwo(data []byte) int64 {
-	panic("unimplemented")
+	// get distinct visited locations
+	locs := [][]int{}
+	for _, rnd := range winners {
+		for _, lc := range rnd.History {
+			if !slices.ContainsFunc(locs, func(l []int) bool {
+				return l[0] == lc[0] && l[1] == lc[1]
+			}) {
+				locs = append(locs, lc)
+			}
+		}
+	}
+
+	// + exit
+	locs = append(locs, exit)
+
+	DebugMapAndLocations(maze, locs, w, h)
+
+	return int64(len(locs))
 }
