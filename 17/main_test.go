@@ -86,8 +86,12 @@ Program: 4,0`
 	assert.Equal(t, int64(44354), cmp.RegisterB)
 }
 
-func xTestPhaseTwo(t *testing.T) {
-	teststring := ``
+func TestPhaseTwo(t *testing.T) {
+	teststring := `Register A: 2024
+Register B: 0
+Register C: 0
+
+Program: 0,3,5,4,3,0`
 	res := solution.ComputeSolutionTwo([]byte(teststring))
-	assert.Equal(t, int64(0), res)
+	assert.Equal(t, int64(117440), res)
 }
