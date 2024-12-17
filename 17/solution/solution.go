@@ -134,11 +134,11 @@ func (cmp *Computer) Cdv(op int8) {
 }
 
 func (cmp *Computer) PrintOutput() string {
-	str := ""
+	str := []string{}
 	for _, v := range cmp.Output {
-		str += fmt.Sprintf("%d", v)
+		str = append(str, fmt.Sprintf("%d", v))
 	}
-	return str
+	return strings.Join(str, ",")
 }
 
 func ComputeSolutionOne(data []byte) string {

@@ -27,7 +27,7 @@ Register C: 0
 
 Program: 0,1,5,4,3,0`
 	res := solution.ComputeSolutionOne([]byte(teststring))
-	assert.Equal(t, "4635635210", res)
+	assert.Equal(t, "4,6,3,5,6,3,5,2,1,0", res)
 }
 
 func TestPhaseOneA(t *testing.T) {
@@ -49,7 +49,7 @@ Register C: 0
 Program: 5,0,5,1,5,4`
 	cmp, prg := solution.ParseInput([]byte(teststring))
 	cmp.RunProgram(prg)
-	assert.Equal(t, "012", cmp.PrintOutput())
+	assert.Equal(t, "0,1,2", cmp.PrintOutput())
 }
 
 func TestPhaseOneC(t *testing.T) {
@@ -60,7 +60,7 @@ Register C: 0
 Program: 0,1,5,4,3,0`
 	cmp, prg := solution.ParseInput([]byte(teststring))
 	cmp.RunProgram(prg)
-	assert.Equal(t, "42567777310", cmp.PrintOutput())
+	assert.Equal(t, "4,2,5,6,7,7,7,7,3,1,0", cmp.PrintOutput())
 	assert.Equal(t, int64(0), cmp.RegisterA)
 }
 
