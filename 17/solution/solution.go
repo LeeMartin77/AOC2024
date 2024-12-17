@@ -6,7 +6,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 type Computer struct {
@@ -181,53 +180,74 @@ func PrintProgram(prg []int8) string {
 	return strings.Join(str, ",")
 }
 
+func (cmp *Computer) PrintOutputCommaless() string {
+	str := []string{}
+	for _, v := range cmp.Output {
+		str = append(str, fmt.Sprintf("%d", v))
+	}
+	return strings.Join(str, "")
+}
+
+func PrintProgramCommaless(prg []int8) string {
+	str := []string{}
+	for _, v := range prg {
+		str = append(str, fmt.Sprintf("%d", v))
+	}
+	return strings.Join(str, "")
+}
+
 func ComputeSolutionOne(data []byte) string {
 	cmp, prg := ParseInput(data)
 	cmp.RunProgram(prg)
 	return cmp.PrintOutput()
 }
 
-func ComputeSolutionTwo(data []byte) int64 {
+type todo struct {
+	lng int
+	val int64
+}
 
+func ComputeSolutionTwo(data []byte) int64 {
+	// Cribbed this from reddit a bit and converted it to golang. Hence all the notes, to
+	// make sure I actually learn what it's doing.
 	cmp, prg := ParseInput(data)
-	prnt := PrintProgram(prg)
-	solution := int64(0)
-	attempt := int64(0)
-	solchan := make(chan int64)
-	soldone := make(chan struct{})
-	ch := make(chan struct{}, 1000000)
-	wg := sync.WaitGroup{}
-	go func() {
-		for sol := range solchan {
-			if solution == 0 || sol < solution {
-				solution = sol
+	todolst := []todo{
+		{len(prg) - 1, 0},
+	}
+	for len(todolst) > 0 {
+		var ths todo
+		// just handling the edge case with a list of just one item
+		if len(todolst) > 1 {
+			ths, todolst = todolst[0], todolst[1:]
+		} else {
+			ths, todolst = todolst[0], []todo{}
+		}
+		off, val := ths.lng, ths.val
+		for cur := range 8 {
+			cur_int := int64(cur)
+			// this adds the next "instruction" to test onto to register A
+			// we shift on three then add, because 0-3 aren't combo ops
+			next_val := (val << 3) + cur_int
+			tmpcmp := cmp.CloneComputer()
+			tmpcmp.RegisterA = next_val
+			tmpcmp.RunProgram(prg)
+			out := tmpcmp.PrintOutputCommaless()
+			// we then check if the current list of digits matches our original program
+			if out == PrintProgramCommaless(prg)[off:] {
+				if off == 0 {
+					// if it does, and we're "done" - just return the value
+					// we return hard because we don't care if higher numbers achieve it
+					return next_val
+				}
+				// if it does and we're not done, add a new "todo" item to find the next digit
+				// we use a list for this so that if multiple digits in a register work
+				// we can keep them "going" so we can find the minimum
+				todolst = append(todolst, todo{
+					off - 1, next_val,
+				})
 			}
 		}
-		soldone <- struct{}{}
-	}()
-	for solution == 0 {
-		wg.Add(1)
-		ch <- struct{}{}
-		go func(atmp int64, tstcmp Computer) {
-			defer wg.Done()
-			tstcmp.RegisterA = atmp
-			halted := tstcmp.RunProgram(prg)
-			if !halted {
-				fmt.Printf("%d:false\n", atmp)
-				<-ch
-				return
-			}
-			out := tstcmp.PrintOutput()
-			//fmt.Printf("%d:true\n", attempt)
-			if out == prnt {
-				solchan <- atmp
-			}
-			<-ch
-		}(attempt, cmp.CloneComputer())
-		attempt += 1
+
 	}
-	wg.Wait()
-	close(solchan)
-	<-soldone
-	return solution
+	panic("Should not happen")
 }
