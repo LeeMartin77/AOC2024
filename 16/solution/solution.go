@@ -418,10 +418,56 @@ func ComputeSolutionTwo(data []byte) int64 {
 		return most_expensive_destination - destcosts[self_cord[0]][self_cord[1]]
 	}
 
-	_, route := a_star(start, exit, maze, hh, []int{start[0] - 1, start[1]})
+	best_score, first_route := a_star(start, exit, maze, hh, []int{start[0] - 1, start[1]})
 
-	all_points := fork_path(route, maze, destcosts, start, exit, hh, [][]int{})
+	all_points := append([][]int{}, first_route...)
 
+	type routescore struct {
+		route [][]int
+		score int
+	}
+
+	routescores := make(chan routescore)
+
+	go func() {
+		for r := range routescores {
+			if r.score != -10 && r.score <= best_score {
+				all_points = append(all_points, r.route...)
+			}
+		}
+		donedests <- struct{}{}
+	}()
+	wg2 := sync.WaitGroup{}
+	// go back through the successful route, block the maze at each, check for score
+	for i, cord := range first_route {
+		wg2.Add(1)
+		go func() {
+			defer wg2.Done()
+			mpcpy := map[int]map[int]bool{}
+			for x, mp := range maze {
+				mpcpy[x] = map[int]bool{}
+				for y, bl := range mp {
+					if x == cord[0] && y == cord[1] {
+						mpcpy[x][y] = false
+					} else {
+						mpcpy[x][y] = bl
+					}
+				}
+			}
+
+			scr, rt := a_star(start, exit, mpcpy, hh, []int{start[0] - 1, start[1]})
+			if i == 10 {
+				DebugMapAndLocations(mpcpy, rt, w, h)
+			}
+			routescores <- routescore{
+				rt, scr,
+			}
+		}()
+
+	}
+	wg2.Wait()
+	close(routescores)
+	<-donedests
 	deduped_all_points := [][]int{}
 
 	for _, pnt := range all_points {
@@ -435,63 +481,6 @@ func ComputeSolutionTwo(data []byte) int64 {
 	DebugMapAndLocations(maze, deduped_all_points, w, h)
 
 	return int64(len(deduped_all_points))
-}
-
-func fork_path(path [][]int, maze map[int]map[int]bool, dest_costs map[int]map[int]int, start, exit []int, hh func(self string, goal []int) int, checked [][]int) [][]int {
-
-	if len(path) < 2 {
-		return append(checked, path...)
-	}
-	dirs := [][]int{
-		{0, 1},
-		{0, -1},
-		{1, 0},
-		{-1, 0},
-	}
-
-	cur_cord, path := path[0], path[1:]
-
-	checked = append(checked, cur_cord)
-
-	pos_moves := [][]int{}
-
-	for _, dir := range dirs {
-		ncrd := []int{cur_cord[0] + dir[0], cur_cord[1] + dir[1]}
-		if !maze[ncrd[0]][ncrd[1]] {
-			// completely invalid move
-			continue
-		}
-		if !slices.ContainsFunc(checked, func(crd []int) bool {
-			return crd[0] == ncrd[0] && crd[1] == ncrd[1]
-		}) {
-			pos_moves = append(pos_moves, ncrd)
-		}
-	}
-	if len(pos_moves) > 1 {
-		// we have a choice so we now do an a-star of each path blocked off
-		//orig, _ := a_star(start, exit, maze, hh, []int{start[0] - 1, start[1]})
-
-		for _, mv := range pos_moves {
-			mpcln := map[int]map[int]bool{}
-			for x, mx := range maze {
-				mpcln[x] = map[int]bool{}
-				for y, bl := range mx {
-					if x == mv[0] && y == mv[1] {
-						continue
-					}
-					mpcln[x][y] = bl
-				}
-			}
-			pos, rt := a_star(start, exit, mpcln, hh, []int{start[0] - 1, start[1]})
-			if pos == -10 {
-				fmt.Println("dead")
-			}
-			if pos != -10 {
-				checked = append(checked, rt...)
-			}
-		}
-	}
-	return fork_path(path, maze, dest_costs, start, exit, hh, checked)
 }
 
 // func is_corner(one, two, three []int) bool {
