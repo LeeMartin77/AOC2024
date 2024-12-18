@@ -420,8 +420,6 @@ func ComputeSolutionTwo(data []byte) int64 {
 
 	best_score, first_route := a_star(start, exit, maze, hh, []int{start[0] - 1, start[1]})
 
-	all_points := append([][]int{}, first_route...)
-
 	type routescore struct {
 		route [][]int
 		score int
@@ -429,17 +427,20 @@ func ComputeSolutionTwo(data []byte) int64 {
 
 	routescores := make(chan routescore)
 
+	scoredroutes := map[int][][]int{}
+
 	go func() {
 		for r := range routescores {
 			if r.score != -10 && r.score <= best_score {
-				all_points = append(all_points, r.route...)
+				best_score = r.score
+				scoredroutes[r.score] = append(scoredroutes[r.score], r.route...)
 			}
 		}
 		donedests <- struct{}{}
 	}()
 	wg2 := sync.WaitGroup{}
 	// go back through the successful route, block the maze at each, check for score
-	for i, cord := range first_route {
+	for _, cord := range first_route {
 		wg2.Add(1)
 		go func() {
 			defer wg2.Done()
@@ -456,9 +457,6 @@ func ComputeSolutionTwo(data []byte) int64 {
 			}
 
 			scr, rt := a_star(start, exit, mpcpy, hh, []int{start[0] - 1, start[1]})
-			if i == 10 {
-				DebugMapAndLocations(mpcpy, rt, w, h)
-			}
 			routescores <- routescore{
 				rt, scr,
 			}
@@ -470,7 +468,7 @@ func ComputeSolutionTwo(data []byte) int64 {
 	<-donedests
 	deduped_all_points := [][]int{}
 
-	for _, pnt := range all_points {
+	for _, pnt := range scoredroutes[best_score] {
 		if !slices.ContainsFunc(deduped_all_points, func(ap []int) bool {
 			return ap[0] == pnt[0] && ap[1] == pnt[1]
 		}) {
