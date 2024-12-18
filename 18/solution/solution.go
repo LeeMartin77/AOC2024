@@ -50,12 +50,22 @@ func ComputeSolutionOne(data []byte) int64 {
 		}
 	}
 	_, route := a_star(start, exit, maze, heuristic)
-	DebugMapAndLocations(maze, route, exit[0]+1, exit[1]+1)
+	//DebugMapAndLocations(maze, route, exit[0]+1, exit[1]+1)
 	return int64(len(route) - 1)
 }
 
-func ComputeSolutionTwo(data []byte) int64 {
-	panic("unimplemented")
+func ComputeSolutionTwo(data []byte) string {
+	maze, cor, start, exit := parseGrid(data)
+	for _, cr := range cor {
+		maze[cr[0]][cr[1]] = false
+		scr, _ := a_star(start, exit, maze, heuristic)
+		if scr == -10 {
+			// we can't escape anymore
+
+			return fmt.Sprintf("%d,%d", cr[0], cr[1])
+		}
+	}
+	return "ERROR: NEVER BLOCKED"
 }
 
 func DebugMapAndLocations(maze map[int]map[int]bool, locs [][]int, w, h int) {
