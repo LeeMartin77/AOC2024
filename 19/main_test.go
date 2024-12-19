@@ -7,15 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSingle(t *testing.T) {
-	teststring := `r, wr, b, g, bwu, rb, gb, br
-
-bwurrg`
-
-	res := solution.ComputeSolutionOne([]byte(teststring))
-	assert.Equal(t, int64(1), res)
-}
-
 func TestPhaseOne(t *testing.T) {
 	teststring := `r, wr, b, g, bwu, rb, gb, br
 

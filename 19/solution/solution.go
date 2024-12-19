@@ -21,7 +21,7 @@ func parseTowelsAndPatterns(data []byte) ([]string, []string) {
 }
 
 type cache struct {
-	patternResults map[string]int64
+	patternResults map[string]*int64
 	towels         []string
 	rwmtx          sync.RWMutex
 }
@@ -30,9 +30,11 @@ func (ch *cache) patternPossible(pattern string) int64 {
 	ch.rwmtx.RLock()
 	chres := ch.patternResults[pattern]
 	ch.rwmtx.RUnlock()
-	if chres != 0 {
-		return chres
+	if chres != nil {
+		return *chres
 	}
+	// none of the towels are present - seems to repeat forever otherwise
+
 	if len(pattern) == 0 {
 		return 1
 	}
@@ -41,7 +43,7 @@ func (ch *cache) patternPossible(pattern string) int64 {
 		if strings.Index(pattern, twl) == 0 {
 			res := ch.patternPossible(pattern[len(twl):])
 			ch.rwmtx.Lock()
-			ch.patternResults[pattern[len(twl):]] = res
+			ch.patternResults[pattern[len(twl):]] = &res
 			ch.rwmtx.Unlock()
 			acc += res
 		}
@@ -55,16 +57,16 @@ func ComputeSolutionOne(data []byte) int64 {
 	wg := sync.WaitGroup{}
 	ch := cache{
 		towels:         towels,
-		patternResults: map[string]int64{},
+		patternResults: map[string]*int64{},
 		rwmtx:          sync.RWMutex{},
 	}
 	for _, ptrn := range patterns {
 		wg.Add(1)
 		go func() {
-			defer wg.Done()
 			if ch.patternPossible(ptrn) > 0 {
 				acc += 1
 			}
+			wg.Done()
 		}()
 	}
 	wg.Wait()
@@ -77,14 +79,14 @@ func ComputeSolutionTwo(data []byte) int64 {
 	wg := sync.WaitGroup{}
 	ch := cache{
 		towels:         towels,
-		patternResults: map[string]int64{},
+		patternResults: map[string]*int64{},
 		rwmtx:          sync.RWMutex{},
 	}
 	for _, ptrn := range patterns {
 		wg.Add(1)
 		go func() {
-			defer wg.Done()
 			acc += ch.patternPossible(ptrn)
+			wg.Done()
 		}()
 	}
 	wg.Wait()
