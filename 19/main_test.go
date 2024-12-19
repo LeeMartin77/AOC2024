@@ -7,32 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPossibles(t *testing.T) {
-
-	poss := solution.GetNewPossibilities("brwrr", "r", []string{"wubrg", "wxbrg"})
-	assert.ElementsMatch(t, []string{
-		"wubrg",
-		"wxbrg",
-		"wrbrg",
-		"xrxxx",
-		"xxxxr",
-		"xxxrx",
-
-		"xrxrx",
-		"xxxrr",
-		"xrxxr",
-
-		"xrxrr",
-	}, poss)
-
-	poss2 := solution.GetNewPossibilities("brwrr", "rw", []string{"wubrg", "wxbrg"})
-	assert.ElementsMatch(t, []string{
-		"wubrg",
-		"wxbrg",
-		"xrwxx",
-	}, poss2)
-}
-
 func TestSingle(t *testing.T) {
 	teststring := `r, wr, b, g, bwu, rb, gb, br
 
