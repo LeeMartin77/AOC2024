@@ -82,5 +82,7 @@ func TestPhaseTwo(t *testing.T) {
 #...#...#...###
 ###############`
 	res := solution.ComputeSolutionTwo([]byte(teststring), 50)
-	assert.Equal(t, int64(285), res)
+	assert.Equal(t, int64(
+		32+31+29+39+25+23+20+19+12+14+12+22+4+3,
+	), res)
 }
