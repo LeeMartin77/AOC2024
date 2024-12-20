@@ -65,8 +65,22 @@ func TestPhaseOne_Thresh2(t *testing.T) {
 	res := solution.ComputeSolutionOne([]byte(teststring), 4)
 	assert.Equal(t, int64(30), res)
 }
-func xTestPhaseTwo(t *testing.T) {
-	teststring := ``
-	res := solution.ComputeSolutionTwo([]byte(teststring))
-	assert.Equal(t, int64(0), res)
+func TestPhaseTwo(t *testing.T) {
+	teststring := `###############
+#...#...#.....#
+#.#.#.#.#.###.#
+#S#...#.#.#...#
+#######.#.#.###
+#######.#.#...#
+#######.#.###.#
+###..E#...#...#
+###.#######.###
+#...###...#...#
+#.#####.#.###.#
+#.#...#.#.#...#
+#.#.#.#.#.#.###
+#...#...#...###
+###############`
+	res := solution.ComputeSolutionTwo([]byte(teststring), 50)
+	assert.Equal(t, int64(285), res)
 }

@@ -80,6 +80,17 @@ func ComputeSolutionOne(data []byte, care_about_diff int) int64 {
 	return acc
 }
 
+func invertMaze(maze map[int]map[int]bool) map[int]map[int]bool {
+	mpcpy := map[int]map[int]bool{}
+	for x, mp := range maze {
+		mpcpy[x] = map[int]bool{}
+		for y, bl := range mp {
+			mpcpy[x][y] = !bl
+		}
+	}
+	return mpcpy
+}
+
 func copyMaze(maze map[int]map[int]bool) map[int]map[int]bool {
 	mpcpy := map[int]map[int]bool{}
 	for x, mp := range maze {
@@ -91,8 +102,68 @@ func copyMaze(maze map[int]map[int]bool) map[int]map[int]bool {
 	return mpcpy
 }
 
-func ComputeSolutionTwo(data []byte) int64 {
-	panic("unimplemented")
+func ComputeSolutionTwo(data []byte, care_about_diff int) int64 {
+	maze, s, e, _, _ := parseMaze(data)
+	inverted := invertMaze(maze)
+	_, rt := a_star(s, e, maze, heuristic)
+	//non_cheat_cost := len(rt)
+	acc := int64(0)
+
+	cord_distances := map[string]int{}
+	for dis, cord := range rt {
+		cord_distances[string_cord(cord)] = dis
+	}
+	max_cheat := 20
+
+	diffs := [][]int{}
+	for x := range max_cheat + 1 + max_cheat + 1 {
+		x = x - max_cheat
+		for y := range max_cheat + 1 + max_cheat + 1 {
+			y = y - (max_cheat + 1)
+			if heuristic("0:0", []int{x, y}) < 21 {
+				diffs = append(diffs, []int{x, y})
+			}
+		}
+	}
+	for dist, cord := range rt {
+
+		inv_cpy := copyMaze(inverted)
+		inv_cpy[e[0]][e[1]] = true
+		scr, inv_rt := a_star(cord, e, inv_cpy, heuristic)
+		if scr != -10 && len(inv_rt)-1 <= max_cheat {
+			saving := -(dist - cord_distances[string_cord(e)])
+			saving -= (len(inv_rt) - 1)
+			if saving >= care_about_diff {
+				acc += 1
+			}
+		}
+		for _, diff := range diffs {
+
+			neighbour := []int{
+				cord[0] + diff[0],
+				cord[1] + diff[1],
+			}
+			neighbour_dist := cord_distances[string_cord(neighbour)]
+			if neighbour_dist > (dist + 1) {
+				// potential shortcut!
+				// we check to see if the inverse map has a route to the dest
+				// that is less than the max cheat
+				inv_cpy := copyMaze(inverted)
+				inv_cpy[neighbour[0]][neighbour[1]] = true
+
+				scr, inv_rt := a_star(cord, neighbour, inv_cpy, heuristic)
+				if scr != -10 && len(inv_rt)-1 <= max_cheat {
+					saving := -(dist - neighbour_dist)
+					saving -= (len(inv_rt) - 1)
+					if saving >= care_about_diff {
+						acc += 1
+					}
+				}
+			}
+		}
+	}
+	//DebugMapAndLocations(maze, rt, w, h)
+	return acc
 }
 
 func DebugMapAndLocations(maze map[int]map[int]bool, locs [][]int, w, h int) {
