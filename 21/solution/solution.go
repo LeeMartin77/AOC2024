@@ -55,6 +55,9 @@ var cmdmap map[rune][]int = map[rune][]int{
 	'>': {2, 1},
 }
 
+type compad struct {
+}
+
 func TypeCommmandPad(cmd string) string {
 	return typeIntoPad(cmd, cmdmap)
 }
@@ -116,10 +119,11 @@ func GetNumber(cmd string) int64 {
 	return vl
 }
 
-func GoThroughRobotsAndGetComplexity(cmd string) int64 {
-	numput := TypeNumberPad(cmd)
-	comput := TypeCommmandPad(numput)
-	comput = TypeCommmandPad(comput)
+func GoThroughRobotsAndGetComplexity(cmd string, num_bots int) int64 {
+	comput := TypeNumberPad(cmd)
+	for range num_bots {
+		comput = TypeCommmandPad(comput)
+	}
 	return GetNumber(cmd) * int64(len(comput))
 }
 
@@ -128,12 +132,17 @@ func ComputeSolutionOne(data []byte) int64 {
 	acc := int64(0)
 	for _, inp := range inpts {
 		// we'll just do it in the loop for P1
-		acc += GoThroughRobotsAndGetComplexity(inp)
+		acc += GoThroughRobotsAndGetComplexity(inp, 2)
 	}
-
 	return acc
 }
 
 func ComputeSolutionTwo(data []byte) int64 {
-	panic("unimplemented")
+	inpts := strings.Split(string(data), "\n")
+	acc := int64(0)
+	for _, inp := range inpts {
+		// we'll just do it in the loop for P1
+		acc += GoThroughRobotsAndGetComplexity(inp, 25)
+	}
+	return acc
 }

@@ -22,11 +22,11 @@ func TestTypeCommandPad(t *testing.T) {
 }
 
 func TestSingleRobotFirst(t *testing.T) {
-	assert.Equal(t, int64(68*29), solution.GoThroughRobotsAndGetComplexity("029A"))
-	assert.Equal(t, int64(60*980), solution.GoThroughRobotsAndGetComplexity("980A"))
-	assert.Equal(t, int64(68*179), solution.GoThroughRobotsAndGetComplexity("179A"))
-	assert.Equal(t, int64(64*456), solution.GoThroughRobotsAndGetComplexity("456A"))
-	assert.Equal(t, int64(64*379), solution.GoThroughRobotsAndGetComplexity("379A"))
+	assert.Equal(t, int64(68*29), solution.GoThroughRobotsAndGetComplexity("029A", 2))
+	assert.Equal(t, int64(60*980), solution.GoThroughRobotsAndGetComplexity("980A", 2))
+	assert.Equal(t, int64(68*179), solution.GoThroughRobotsAndGetComplexity("179A", 2))
+	assert.Equal(t, int64(64*456), solution.GoThroughRobotsAndGetComplexity("456A", 2))
+	assert.Equal(t, int64(64*379), solution.GoThroughRobotsAndGetComplexity("379A", 2))
 }
 
 func TestPhaseOne(t *testing.T) {
@@ -43,8 +43,11 @@ func TestPhaseOne(t *testing.T) {
 	assert.Equal(t, int64(scr), res)
 }
 
-func xTestPhaseTwo(t *testing.T) {
-	teststring := ``
-	res := solution.ComputeSolutionTwo([]byte(teststring))
-	assert.Equal(t, int64(0), res)
+func TestPhaseTwo(t *testing.T) {
+	teststring := `029A
+980A
+179A
+456A
+379A`
+	solution.ComputeSolutionTwo([]byte(teststring))
 }
