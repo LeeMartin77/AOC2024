@@ -33,7 +33,7 @@ var keymap map[rune][]int = map[rune][]int{
 }
 
 func TypeNumberPad(cmd string) string {
-	return typeIntoPad(cmd, keymap, false)
+	return typeIntoPad(cmd, keymap)
 
 }
 
@@ -55,69 +55,58 @@ var cmdmap map[rune][]int = map[rune][]int{
 	'>': {2, 1},
 }
 
-func TypeCommmandPad(cmd string, pain bool) string {
-	return typeIntoPad(cmd, cmdmap, pain)
+func TypeCommmandPad(cmd string) string {
+	return typeIntoPad(cmd, cmdmap)
 }
 
-func typeIntoPad(cmd string, keyp map[rune][]int, pain bool) string {
+func typeIntoPad(cmd string, keyp map[rune][]int) string {
 	pos := []int{keyp['A'][0], keyp['A'][1]}
 
 	commands := ""
+
 	for _, cmd := range cmd {
 		target_pos := keyp[cmd]
 		xadj := pos[0] - target_pos[0]
 		yadj := pos[1] - target_pos[1]
+
+		// this is for efficient operation orders
+		// and avoiding going over the error key
+		vert_first := false
+		if yadj > 0 && !(keyp['E'][0] == target_pos[0] && keyp['E'][1] == pos[1]) {
+			vert_first = false
+		} else if !(keyp['E'][0] == pos[0] && keyp['E'][1] == target_pos[1]) {
+			vert_first = true
+		}
+
+		vert := ""
+		horiz := ""
 		for xadj != 0 {
 			if xadj > 0 {
-				// it'll always be here that potentially "errors"
-				if !pain && keyp['E'][0] == pos[0]-xadj && keyp['E'][1] == pos[1] {
-					if yadj > 0 {
-						yadj -= 1
-						pos[1] -= 1
-						commands += "^"
-					} else if yadj < 0 {
-						yadj += 1
-						pos[1] += 1
-						commands += "v"
-					}
-				}
 				xadj -= 1
 				pos[0] -= 1
-				if pain {
-
-					if keyp['E'][0] == pos[0] && keyp['E'][1] == pos[1] {
-
-						if yadj > 0 {
-							yadj -= 1
-							pos[1] -= 1
-							commands += "^"
-						} else if yadj < 0 {
-							yadj += 1
-							pos[1] += 1
-							commands += "v"
-						}
-					}
-				}
-				commands += "<"
+				horiz += "<"
 			} else if xadj < 0 {
 				xadj += 1
 				pos[0] += 1
-				commands += ">"
+				horiz += ">"
 			}
 		}
 		for yadj != 0 {
 			if yadj > 0 {
 				yadj -= 1
 				pos[1] -= 1
-				commands += "^"
+				vert += "^"
 			} else if yadj < 0 {
 				yadj += 1
 				pos[1] += 1
-				commands += "v"
+				vert += "v"
 			}
 		}
-		commands += "A"
-		// fucking corner case?
+		if vert_first {
+			commands += vert + horiz + "A"
+		} else {
+			commands += horiz + vert + "A"
+		}
 	}
 	return commands
 }
@@ -129,10 +118,8 @@ func GetNumber(cmd string) int64 {
 
 func GoThroughRobotsAndGetComplexity(cmd string) int64 {
 	numput := TypeNumberPad(cmd)
-	comput := TypeCommmandPad(numput, false)
-	comput = TypeCommmandPad(comput, true)
-	//fmt.Println(GetNumber(cmd))
-	//fmt.Println(len(comput))
+	comput := TypeCommmandPad(numput)
+	comput = TypeCommmandPad(comput)
 	return GetNumber(cmd) * int64(len(comput))
 }
 
