@@ -1,6 +1,7 @@
 package solution
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -33,7 +34,7 @@ var keymap map[rune][]int = map[rune][]int{
 }
 
 func TypeNumberPad(cmd string) string {
-	return typeIntoPad(cmd, keymap)
+	return typeIntoPad(cmd, keymap, []int{keymap['A'][0], keymap['A'][1]}, nil, "")
 
 }
 
@@ -55,63 +56,83 @@ var cmdmap map[rune][]int = map[rune][]int{
 	'>': {2, 1},
 }
 
-type compad struct {
+type ComCache struct {
+	cache map[string]*string
 }
 
-func TypeCommmandPad(cmd string) string {
-	return typeIntoPad(cmd, cmdmap)
+func (cc *ComCache) TypeCommmandPad(cmd string) string {
+	return typeIntoPad(cmd, cmdmap, []int{cmdmap['A'][0], cmdmap['A'][1]}, cc.cache, "")
 }
 
-func typeIntoPad(cmd string, keyp map[rune][]int) string {
-	pos := []int{keyp['A'][0], keyp['A'][1]}
+func typeIntoPad(cmdstr string, keyp map[rune][]int, pos []int, cache map[string]*string, retval string) string {
 
-	commands := ""
+	cache_str := cmdstr + fmt.Sprintf(":%d,%d", pos[0], pos[1])
+	if cache != nil && cache[cache_str] != nil {
+		return *cache[cache_str]
+	}
+	var cmd byte
 
-	for _, cmd := range cmd {
-		target_pos := keyp[cmd]
-		xadj := pos[0] - target_pos[0]
-		yadj := pos[1] - target_pos[1]
+	if len(cmdstr) == 0 {
+		return retval
+	}
 
-		// this is for efficient operation orders
-		// and avoiding going over the error key
-		vert_first := false
-		if yadj > 0 && !(keyp['E'][0] == target_pos[0] && keyp['E'][1] == pos[1]) {
-			vert_first = false
-		} else if !(keyp['E'][0] == pos[0] && keyp['E'][1] == target_pos[1]) {
-			vert_first = true
-		}
+	if len(cmdstr) == 1 {
+		cmd = cmdstr[0]
+		cmdstr = ""
+	} else {
+		cmd, cmdstr = cmdstr[0], cmdstr[1:]
+	}
+	target_pos := keyp[rune(cmd)]
 
-		vert := ""
-		horiz := ""
-		for xadj != 0 {
-			if xadj > 0 {
-				xadj -= 1
-				pos[0] -= 1
-				horiz += "<"
-			} else if xadj < 0 {
-				xadj += 1
-				pos[0] += 1
-				horiz += ">"
-			}
-		}
-		for yadj != 0 {
-			if yadj > 0 {
-				yadj -= 1
-				pos[1] -= 1
-				vert += "^"
-			} else if yadj < 0 {
-				yadj += 1
-				pos[1] += 1
-				vert += "v"
-			}
-		}
-		if vert_first {
-			commands += vert + horiz + "A"
-		} else {
-			commands += horiz + vert + "A"
+	xadj := pos[0] - target_pos[0]
+	yadj := pos[1] - target_pos[1]
+
+	// this is for efficient operation orders
+	// and avoiding going over the error key
+	vert_first := false
+	if yadj > 0 && !(keyp['E'][0] == target_pos[0] && keyp['E'][1] == pos[1]) {
+		vert_first = false
+	} else if !(keyp['E'][0] == pos[0] && keyp['E'][1] == target_pos[1]) {
+		vert_first = true
+	}
+
+	vert := ""
+	horiz := ""
+	for xadj != 0 {
+		if xadj > 0 {
+			xadj -= 1
+			pos[0] -= 1
+			horiz += "<"
+		} else if xadj < 0 {
+			xadj += 1
+			pos[0] += 1
+			horiz += ">"
 		}
 	}
-	return commands
+	for yadj != 0 {
+		if yadj > 0 {
+			yadj -= 1
+			pos[1] -= 1
+			vert += "^"
+		} else if yadj < 0 {
+			yadj += 1
+			pos[1] += 1
+			vert += "v"
+		}
+	}
+	new_com := ""
+	if vert_first {
+		new_com += vert + horiz + "A"
+	} else {
+		new_com += horiz + vert + "A"
+	}
+	retval += new_com
+
+	final := typeIntoPad(cmdstr, keyp, pos, cache, retval)
+	if cache != nil {
+		cache[cache_str] = &final
+	}
+	return final
 }
 
 func GetNumber(cmd string) int64 {
@@ -121,8 +142,15 @@ func GetNumber(cmd string) int64 {
 
 func GoThroughRobotsAndGetComplexity(cmd string, num_bots int) int64 {
 	comput := TypeNumberPad(cmd)
-	for range num_bots {
-		comput = TypeCommmandPad(comput)
+	cc := ComCache{
+		cache: map[string]*string{},
+	}
+	comput = cc.TypeCommmandPad(comput)
+	commcache := ComCache{
+		cache: map[string]*string{},
+	}
+	for range num_bots - 1 {
+		comput = commcache.TypeCommmandPad(comput)
 	}
 	return GetNumber(cmd) * int64(len(comput))
 }
