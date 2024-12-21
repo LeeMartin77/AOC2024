@@ -68,7 +68,7 @@ func typeIntoPad(cmdstr string, keyp map[rune][]int, pos []int, cache map[string
 
 	cache_str := cmdstr + fmt.Sprintf(":%d,%d", pos[0], pos[1])
 	if cache != nil && cache[cache_str] != nil {
-		return *cache[cache_str]
+		return retval + *cache[cache_str]
 	}
 	var cmd byte
 
