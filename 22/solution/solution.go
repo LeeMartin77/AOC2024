@@ -126,19 +126,30 @@ func ComputeSolutionTwo(data []byte) int64 {
 		hshs = append(hshs, CalculateNSecretNumberPriceHashes(vl, 2000))
 	}
 	max_nanas := int64(0)
+	max_seq := ""
 	top := int8(9)
 	for i := range int8(9) {
-		seq := GetSequencesForDigit(hshs[0], top-i)
-		for _, seq := range seq {
-			acc := int64(0)
-			for _, hsh := range hshs {
-				acc += int64(GetBestForSequence(seq, hsh))
-			}
-			if acc > max_nanas {
-				max_nanas = acc
+		seq := map[string]bool{}
+		for _, hsh := range hshs {
+			seqs := GetSequencesForDigit(hsh, top-i)
+			for _, s := range seqs {
+				seq[s] = true
 			}
 		}
+		for seq := range seq {
+			go func() {
+				acc := int64(0)
+				for _, hsh := range hshs {
+					acc += int64(GetBestForSequence(seq, hsh))
+				}
+				if acc > max_nanas {
+					max_nanas = acc
+					max_seq = seq
+				}
+			}()
+		}
 	}
+	fmt.Println(max_seq)
 	return max_nanas
 }
 
