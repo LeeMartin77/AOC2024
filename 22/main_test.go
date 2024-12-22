@@ -1,7 +1,6 @@
 package main_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/LeeMartin77/AOC2024/22/solution"
@@ -24,28 +23,6 @@ func TestCalculateSingleSecretNumber(t *testing.T) {
 func TestCalculateSingleSecretAndOnes(t *testing.T) {
 	ones := solution.CalculateNSecretNumberPrices(123, 10)
 	assert.Equal(t, []int8{3, 0, 6, 5, 4, 4, 6, 4, 4, 2}, ones)
-}
-
-func TestHashSequences(t *testing.T) {
-	ones := solution.CalculateNSecretNumberPrices(123, 10)
-	hsh := solution.HashSequences(ones)
-	assert.True(t, hsh[2][fmt.Sprintf("%v", []int8{2, -2, 0, -2})])
-	assert.False(t, hsh[2][fmt.Sprintf("%v", []int8{2, -2, 0, -3})])
-}
-
-func TestGetBestForSequence(t *testing.T) {
-	ones := solution.CalculateNSecretNumberPrices(123, 10)
-	hsh := solution.HashSequences(ones)
-	res := solution.GetBestForSequence(fmt.Sprintf("%v", []int8{-1, -1, 0, 2}), hsh)
-	assert.Equal(t, int8(6), res)
-}
-
-func TestGetBestSequences(t *testing.T) {
-	ones := solution.CalculateNSecretNumberPrices(123, 10)
-	hsh := solution.HashSequences(ones)
-	res, seq := solution.GetBestSequences(hsh)
-	assert.Equal(t, int8(6), res)
-	assert.Equal(t, []string{fmt.Sprintf("%v", []int8{-1, -1, 0, 2})}, seq)
 }
 
 func TestPhaseOne(t *testing.T) {

@@ -49,54 +49,30 @@ func CalculateNSecretNumberPrices(init int64, iterations int64) []int8 {
 	return ones
 }
 
-func HashSequences(inp []int8) map[int8]map[string]bool {
-	dlts := []int8{inp[0]}
-	mp := map[int8]map[string]bool{}
-	for i, in := range inp[1:] {
+func HashSequences(inp []int8) map[string]int8 {
+	dlts := []int8{}
+	mp := map[string]int8{}
+	for i := range inp {
+		if i == 0 {
+			continue
+		}
 		if len(dlts) > 3 {
 			dlts = dlts[1:]
 		}
-		dlts = append(dlts, in-inp[i])
+		dlts = append(dlts, inp[i]-inp[i-1])
 		if len(dlts) > 3 {
-			if mp[in] == nil {
-				mp[in] = map[string]bool{
-					fmt.Sprintf("%v", dlts): true,
-				}
-			} else {
-				mp[in][fmt.Sprintf("%v", dlts)] = true
+			delta_hash := fmt.Sprintf("%d,%d,%d,%d", dlts[0], dlts[1], dlts[2], dlts[3])
+			if mp[delta_hash] == 0 {
+				mp[delta_hash] = inp[i]
 			}
 		}
 	}
 	return mp
 }
 
-func CalculateNSecretNumberPriceHashes(init int64, iterations int64) map[int8]map[string]bool {
+func CalculateNSecretNumberPriceHashes(init int64, iterations int64) map[string]int8 {
 	clc := CalculateNSecretNumberPrices(init, iterations)
 	return HashSequences(clc)
-}
-
-func GetBestForSequence(seq string, mp map[int8]map[string]bool) int8 {
-	top := int8(9)
-	for i := range int8(9) {
-		if mp[top-i][seq] {
-			return top - i
-		}
-	}
-	return 0
-}
-
-func GetBestSequences(mp map[int8]map[string]bool) (int8, []string) {
-	top := int8(9)
-	for i := range int8(9) {
-		if mp[top-i] != nil {
-			ret := []string{}
-			for k := range mp[top-i] {
-				ret = append(ret, k)
-			}
-			return top - i, ret
-		}
-	}
-	return 0, []string{}
 }
 
 func GetSequencesForDigit(mp map[int8]map[string]bool, dgd int8) []string {
@@ -121,36 +97,27 @@ func ComputeSolutionOne(data []byte) int64 {
 
 func ComputeSolutionTwo(data []byte) int64 {
 	initial_secrets := parse(data)
-	hshs := []map[int8]map[string]bool{}
+	hshs := []map[string]int8{}
 	for _, vl := range initial_secrets {
 		hshs = append(hshs, CalculateNSecretNumberPriceHashes(vl, 2000))
 	}
-	max_nanas := int64(0)
-	max_seq := ""
-	top := int8(9)
-	for i := range int8(9) {
-		seq := map[string]bool{}
-		for _, hsh := range hshs {
-			seqs := GetSequencesForDigit(hsh, top-i)
-			for _, s := range seqs {
-				seq[s] = true
-			}
-		}
-		for seq := range seq {
-			go func() {
-				acc := int64(0)
-				for _, hsh := range hshs {
-					acc += int64(GetBestForSequence(seq, hsh))
-				}
-				if acc > max_nanas {
-					max_nanas = acc
-					max_seq = seq
-				}
-			}()
+
+	totals := map[string]int64{}
+	for _, hsh := range hshs {
+		for str, t := range hsh {
+			totals[str] += int64(t)
 		}
 	}
-	fmt.Println(max_seq)
-	return max_nanas
+	max_hash := ""
+	max_hash_num := int64(0)
+	for k := range totals {
+		if totals[k] > int64(max_hash_num) {
+			max_hash = k
+			max_hash_num = totals[k]
+		}
+	}
+	fmt.Println(max_hash)
+	return max_hash_num
 }
 
 func parse(data []byte) []int64 {
