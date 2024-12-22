@@ -1,6 +1,7 @@
 package solution
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -28,6 +29,119 @@ func CalculateNthSecretNumber(init int64, iterations int64) int64 {
 	return init
 }
 
+func CalculateNSecretNumberPrices(init int64, iterations int64) []int8 {
+	ones := []int8{int8(init % 10)}
+	for range iterations - 1 {
+		s1 := init * 64
+		init = init ^ s1
+		init = init % prune_modulo
+
+		s2 := init / 32
+		init = init ^ s2
+		init = init % prune_modulo
+
+		s3 := init * 2048
+		init = init ^ s3
+		init = init % prune_modulo
+
+		ones = append(ones, int8(init%10))
+	}
+	return ones
+}
+
+func HashSequences(inp []int8) map[int8]map[string]bool {
+	dlts := []int8{inp[0]}
+	mp := map[int8]map[string]bool{}
+	for i, in := range inp[1:] {
+		if len(dlts) > 3 {
+			dlts = dlts[1:]
+		}
+		dlts = append(dlts, in-inp[i])
+		if len(dlts) > 3 {
+			if mp[in] == nil {
+				mp[in] = map[string]bool{
+					fmt.Sprintf("%v", dlts): true,
+				}
+			} else {
+				mp[in][fmt.Sprintf("%v", dlts)] = true
+			}
+		}
+	}
+	return mp
+}
+
+func CalculateNSecretNumberPriceHashes(init int64, iterations int64) map[int8]map[string]bool {
+	clc := CalculateNSecretNumberPrices(init, iterations)
+	return HashSequences(clc)
+}
+
+func GetBestForSequence(seq string, mp map[int8]map[string]bool) int8 {
+	top := int8(9)
+	for i := range int8(9) {
+		if mp[top-i][seq] {
+			return top - i
+		}
+	}
+	return 0
+}
+
+func GetBestSequences(mp map[int8]map[string]bool) (int8, []string) {
+	top := int8(9)
+	for i := range int8(9) {
+		if mp[top-i] != nil {
+			ret := []string{}
+			for k := range mp[top-i] {
+				ret = append(ret, k)
+			}
+			return top - i, ret
+		}
+	}
+	return 0, []string{}
+}
+
+func GetSequencesForDigit(mp map[int8]map[string]bool, dgd int8) []string {
+	if mp[dgd] != nil {
+		ret := []string{}
+		for k := range mp[dgd] {
+			ret = append(ret, k)
+		}
+		return ret
+	}
+	return []string{}
+}
+
+func ComputeSolutionOne(data []byte) int64 {
+	initial_secrets := parse(data)
+	acc := int64(0)
+	for _, vl := range initial_secrets {
+		acc += CalculateNthSecretNumber(vl, 2000)
+	}
+	return acc
+}
+
+func ComputeSolutionTwo(data []byte) int64 {
+	initial_secrets := parse(data)
+	hshs := []map[int8]map[string]bool{}
+	for _, vl := range initial_secrets {
+		hshs = append(hshs, CalculateNSecretNumberPriceHashes(vl, 2000))
+	}
+	max_nanas := int64(0)
+	top := int8(9)
+	for i := range int8(9) {
+		seq := GetSequencesForDigit(hshs[0], top-i)
+		for _, seq := range seq {
+			acc := int64(0)
+			for _, hsh := range hshs {
+				acc += int64(GetBestForSequence(seq, hsh))
+			}
+			if acc > max_nanas {
+				max_nanas = acc
+			}
+		}
+	}
+	return max_nanas
+}
+
 func parse(data []byte) []int64 {
 	ret := []int64{}
 	for _, vl := range strings.Split(string(data), "\n") {
@@ -35,17 +149,4 @@ func parse(data []byte) []int64 {
 		ret = append(ret, v)
 	}
 	return ret
-}
-
-func ComputeSolutionOne(data []byte) int64 {
-	initial_prices := parse(data)
-	acc := int64(0)
-	for _, vl := range initial_prices {
-		acc += CalculateNthSecretNumber(vl, 2000)
-	}
-	return acc
-}
-
-func ComputeSolutionTwo(data []byte) int64 {
-	panic("unimplemented")
 }
