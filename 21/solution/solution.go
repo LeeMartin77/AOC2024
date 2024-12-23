@@ -63,20 +63,9 @@ func (cc *ComCache) TypeCommmandPad(cmd string) string {
 	return typeIntoPad(cmd, cmdmap, []int{cmdmap['A'][0], cmdmap['A'][1]}, "")
 }
 
-func typeIntoPad(cmdstr string, keyp map[rune][]int, pos []int, retval string) string {
-	var cmd byte
+func getCommandSequence(cmd rune, keyp map[rune][]int, pos []int) string {
 
-	if len(cmdstr) == 0 {
-		return retval
-	}
-
-	if len(cmdstr) == 1 {
-		cmd = cmdstr[0]
-		cmdstr = ""
-	} else {
-		cmd, cmdstr = cmdstr[0], cmdstr[1:]
-	}
-	target_pos := keyp[rune(cmd)]
+	target_pos := keyp[cmd]
 
 	xadj := pos[0] - target_pos[0]
 	yadj := pos[1] - target_pos[1]
@@ -120,7 +109,23 @@ func typeIntoPad(cmdstr string, keyp map[rune][]int, pos []int, retval string) s
 	} else {
 		new_com += horiz + vert + "A"
 	}
-	retval += new_com
+	return new_com
+}
+
+func typeIntoPad(cmdstr string, keyp map[rune][]int, pos []int, retval string) string {
+
+	if len(cmdstr) == 0 {
+		return retval
+	}
+	var cmd byte
+	if len(cmdstr) == 1 {
+		cmd = cmdstr[0]
+		cmdstr = ""
+	} else {
+		cmd, cmdstr = cmdstr[0], cmdstr[1:]
+	}
+
+	retval += getCommandSequence(rune(cmd), keyp, pos)
 	return typeIntoPad(cmdstr, keyp, pos, retval)
 }
 
