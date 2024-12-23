@@ -56,11 +56,7 @@ var cmdmap map[rune][]int = map[rune][]int{
 	'>': {2, 1},
 }
 
-type ComCache struct {
-	cache map[string]*string
-}
-
-func (cc *ComCache) TypeCommmandPad(cmd string) string {
+func TypeCommmandPad(cmd string) string {
 	return typeIntoPad(cmd, cmdmap, []int{cmdmap['A'][0], cmdmap['A'][1]}, "")
 }
 
@@ -151,18 +147,8 @@ func GetNumber(cmd string) int64 {
 
 func GoThroughRobotsAndGetComplexity(cmd string, num_bots int) int64 {
 	comput := TypeNumberPad(cmd)
-	cc := ComCache{
-		cache: map[string]*string{},
-	}
-	comput = cc.TypeCommmandPad(comput)
-	commcache := ComCache{
-		cache: map[string]*string{},
-	}
-	for i := range num_bots - 1 {
-		fmt.Println(i)
-		fmt.Println(len(comput))
-
-		comput = commcache.TypeCommmandPad(comput)
+	for range num_bots {
+		comput = TypeCommmandPad(comput)
 	}
 	return GetNumber(cmd) * int64(len(comput))
 }

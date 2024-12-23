@@ -17,9 +17,8 @@ func TestTypeNumberPad(t *testing.T) {
 }
 
 func TestTypeCommandPad(t *testing.T) {
-	cc := solution.ComCache{}
-	assert.Equal(t, len("v<<A>>^A<A>AvA<^AA>A<vAAA>^A"), len(cc.TypeCommmandPad("<A^A>^^AvvvA")))
-	assert.Equal(t, len("<vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A"), len(cc.TypeCommmandPad("v<<A>>^A<A>AvA<^AA>A<vAAA>^A")))
+	assert.Equal(t, len("v<<A>>^A<A>AvA<^AA>A<vAAA>^A"), len(solution.TypeCommmandPad("<A^A>^^AvvvA")))
+	assert.Equal(t, len("<vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A"), len(solution.TypeCommmandPad("v<<A>>^A<A>AvA<^AA>A<vAAA>^A")))
 }
 
 func TestSingleRobotFirst(t *testing.T) {
