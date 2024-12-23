@@ -46,6 +46,39 @@ func ComputeSolutionOne(data []byte) int64 {
 	return acc
 }
 
-func ComputeSolutionTwo(data []byte) int64 {
-	panic("unimplemented")
+func buildClique(acc []string, con_map map[string][]string) []string {
+	added := false
+	new_potential_members := []string{}
+	for _, cm := range acc {
+		new_potential_members = append(new_potential_members, con_map[cm]...)
+	}
+	for _, npm := range new_potential_members {
+		if slices.Contains(acc, npm) {
+			continue
+		}
+		if slices.ContainsFunc(acc, func(ac string) bool {
+			return !slices.Contains(con_map[npm], ac)
+		}) {
+			continue
+		}
+		acc = append(acc, npm)
+		added = true
+	}
+	if !added {
+		return acc
+	}
+	return buildClique(acc, con_map)
+}
+
+func ComputeSolutionTwo(data []byte) string {
+	connection_map := parseComputers(data)
+	sets := [][]string{}
+	for cmp := range connection_map {
+		sets = append(sets, buildClique([]string{cmp}, connection_map))
+	}
+	slices.SortFunc(sets, func(a, b []string) int {
+		return len(b) - len(a)
+	})
+	slices.Sort(sets[0])
+	return strings.Join(sets[0], ",")
 }
