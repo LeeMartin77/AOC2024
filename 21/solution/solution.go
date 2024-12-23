@@ -1,7 +1,6 @@
 package solution
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 )
@@ -34,7 +33,7 @@ var keymap map[rune][]int = map[rune][]int{
 }
 
 func TypeNumberPad(cmd string) string {
-	return typeIntoPad(cmd, keymap, []int{keymap['A'][0], keymap['A'][1]}, nil, "")
+	return typeIntoPad(cmd, keymap, []int{keymap['A'][0], keymap['A'][1]}, "")
 
 }
 
@@ -61,15 +60,10 @@ type ComCache struct {
 }
 
 func (cc *ComCache) TypeCommmandPad(cmd string) string {
-	return typeIntoPad(cmd, cmdmap, []int{cmdmap['A'][0], cmdmap['A'][1]}, cc.cache, "")
+	return typeIntoPad(cmd, cmdmap, []int{cmdmap['A'][0], cmdmap['A'][1]}, "")
 }
 
-func typeIntoPad(cmdstr string, keyp map[rune][]int, pos []int, cache map[string]*string, retval string) string {
-
-	cache_str := cmdstr + fmt.Sprintf(":%d,%d", pos[0], pos[1])
-	if cache != nil && cache[cache_str] != nil {
-		return retval + *cache[cache_str]
-	}
+func typeIntoPad(cmdstr string, keyp map[rune][]int, pos []int, retval string) string {
 	var cmd byte
 
 	if len(cmdstr) == 0 {
@@ -127,12 +121,7 @@ func typeIntoPad(cmdstr string, keyp map[rune][]int, pos []int, cache map[string
 		new_com += horiz + vert + "A"
 	}
 	retval += new_com
-
-	final := typeIntoPad(cmdstr, keyp, pos, cache, retval)
-	if cache != nil {
-		cache[cache_str] = &final
-	}
-	return final
+	return typeIntoPad(cmdstr, keyp, pos, retval)
 }
 
 func GetNumber(cmd string) int64 {
