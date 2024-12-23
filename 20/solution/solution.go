@@ -62,8 +62,10 @@ func manhattan_moves(rt [][]int, spaces int) map[int]int { // savings: count
 	svs := map[int]int{}
 	for i := range rt {
 		for ii := range rt {
-			if distance_between_cords(rt[i], rt[ii]) <= spaces && ii < i+spaces {
-				sv := -((ii - i) + spaces)
+			dist := distance_between_cords(rt[i], rt[ii])
+			if dist <= spaces && ii-i > dist {
+				sv := ((ii - i) - dist)
+
 				if sv > 1 {
 					svs[sv] += 1
 				}
@@ -78,7 +80,18 @@ func distance_between_cords(a, b []int) int {
 }
 
 func ComputeSolutionTwo(data []byte, care_about_diff int) int64 {
-	return int64(0)
+	maze, s, e, _, _ := parseMaze(data)
+	rt := getMazeRoute(maze, s, e)
+
+	mvs := manhattan_moves(rt, 20)
+
+	acc := 0
+	for svng, cnt := range mvs {
+		if svng >= care_about_diff {
+			acc += cnt
+		}
+	}
+	return int64(acc)
 }
 
 func getMazeRoute(maze map[int]map[int]bool, s, e []int) [][]int {
