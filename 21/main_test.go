@@ -43,7 +43,7 @@ func TestPhaseOne(t *testing.T) {
 	assert.Equal(t, int64(scr), res)
 }
 
-func xTestPhaseTwo(t *testing.T) {
+func TestPhaseTwo(t *testing.T) {
 	teststring := `029A
 980A
 179A

@@ -1,7 +1,6 @@
 package solution
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 )
@@ -60,20 +59,7 @@ func TypeCommmandPad(cmd string) string {
 	return typeIntoPad(cmd, cmdmap, []int{cmdmap['A'][0], cmdmap['A'][1]}, "")
 }
 
-var memo_cmd = make(map[string]string)
-var memo_pos = make(map[string][]int)
-
-func memokey(cmd rune, keyp map[rune][]int, pos []int) string {
-	return fmt.Sprintf("%v::%v::%v", cmd, keyp, pos)
-}
-
 func getCommandSequence(cmd rune, keyp map[rune][]int, pos []int) string {
-	mk := memokey(cmd, keyp, pos)
-	if val, ok := memo_cmd[mk]; ok {
-		pos[0] = memo_pos[mk][0]
-		pos[1] = memo_pos[mk][1]
-		return val
-	}
 	target_pos := keyp[cmd]
 
 	xadj := pos[0] - target_pos[0]
@@ -118,8 +104,6 @@ func getCommandSequence(cmd rune, keyp map[rune][]int, pos []int) string {
 	} else {
 		new_com += horiz + vert + "A"
 	}
-	memo_cmd[mk] = new_com
-	memo_pos[mk] = []int{pos[0], pos[1]}
 	return new_com
 }
 
@@ -145,6 +129,38 @@ func GetNumber(cmd string) int64 {
 	return vl
 }
 
+type Memo struct {
+	seq   string
+	depth int
+}
+
+var dp = map[Memo]int{} // Memoization map
+
+func dfs(memo Memo) int {
+	if v, ok := dp[memo]; ok {
+		return v
+	}
+	if memo.depth == 0 {
+		return len(memo.seq)
+	}
+
+	path := TypeCommmandPad(memo.seq)
+	res := 0
+	for _, p := range path {
+		res += dfs(Memo{string(p), memo.depth - 1})
+	}
+	dp[memo] = res
+	return res
+}
+func GoThroughRobotsAndGetComplexityDfs(cmd string, num_bots int) int64 {
+	comput := TypeNumberPad(cmd)
+	acc := 0
+	for _, cm := range comput {
+		acc += dfs(Memo{string(cm), num_bots})
+	}
+	return GetNumber(cmd) * int64(len(comput)+acc)
+}
+
 func GoThroughRobotsAndGetComplexity(cmd string, num_bots int) int64 {
 	comput := TypeNumberPad(cmd)
 	for range num_bots {
@@ -167,7 +183,7 @@ func ComputeSolutionTwo(data []byte) int64 {
 	inpts := strings.Split(string(data), "\n")
 	acc := int64(0)
 	for _, inp := range inpts {
-		acc += GoThroughRobotsAndGetComplexity(inp, 25)
+		acc += GoThroughRobotsAndGetComplexityDfs(inp, 25)
 	}
 	return acc
 }
