@@ -47,27 +47,20 @@ func ComputeSolutionOne(data []byte) int64 {
 }
 
 func buildClique(acc []string, con_map map[string][]string) []string {
-	added := false
-	new_potential_members := []string{}
 	for _, cm := range acc {
-		new_potential_members = append(new_potential_members, con_map[cm]...)
-	}
-	for _, npm := range new_potential_members {
-		if slices.Contains(acc, npm) {
-			continue
+		for _, npm := range con_map[cm] {
+			if slices.Contains(acc, npm) {
+				continue
+			}
+			if slices.ContainsFunc(acc, func(ac string) bool {
+				return !slices.Contains(con_map[npm], ac)
+			}) {
+				continue
+			}
+			return buildClique(append(acc, npm), con_map)
 		}
-		if slices.ContainsFunc(acc, func(ac string) bool {
-			return !slices.Contains(con_map[npm], ac)
-		}) {
-			continue
-		}
-		acc = append(acc, npm)
-		added = true
 	}
-	if !added {
-		return acc
-	}
-	return buildClique(acc, con_map)
+	return acc
 }
 
 func ComputeSolutionTwo(data []byte) string {
