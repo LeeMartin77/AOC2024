@@ -133,61 +133,6 @@ func (rnd reindeer) GenerateFuturePossibleReindeer(maze map[int]map[int]bool) []
 	return ftr
 }
 
-func recurrFlock(maze map[int]map[int]bool, exit []int, flock []reindeer, current_low_score reindeer) reindeer {
-	if len(flock) == 0 {
-		return current_low_score
-	}
-	remaining := []reindeer{}
-	for _, rnd := range flock {
-		if rnd.Position[0] == exit[0] && rnd.Position[1] == exit[1] && current_low_score.Score > rnd.Score {
-			current_low_score = rnd
-		}
-		if rnd.Score < current_low_score.Score {
-			remaining = append(remaining, rnd)
-		}
-	}
-	future := []reindeer{}
-	wg := sync.WaitGroup{}
-	ftrchn := make(chan reindeer)
-	dnchn := make(chan struct{})
-	go func() {
-		for f := range ftrchn {
-			future = append(future, f)
-		}
-		dnchn <- struct{}{}
-	}()
-	for _, rnd := range remaining {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			ftr := rnd.GenerateFuturePossibleReindeer(maze)
-			for _, f := range ftr {
-				ftrchn <- f
-			}
-		}()
-	}
-	wg.Wait()
-	close(ftrchn)
-	<-dnchn
-	// take the lowest from flock for each position
-	// - basically, if we end up in the same place from two reindeer, only
-	// the lowest survives
-	fastest := []reindeer{}
-	for _, rnd := range future {
-		other := slices.IndexFunc(fastest, func(f reindeer) bool {
-			return (f.Position[0] == rnd.Position[0] && f.Position[1] == rnd.Position[1]) || slices.ContainsFunc(f.History, func(hst []int) bool {
-				return hst[0] == rnd.Position[0] && hst[1] == rnd.Position[1]
-			})
-		})
-		if other == -1 {
-			fastest = append(fastest, rnd)
-		} else if fastest[other].Score > rnd.Score {
-			fastest[other] = rnd
-		}
-	}
-	return recurrFlock(maze, exit, fastest, current_low_score)
-}
-
 func string_cord(cord []int) string {
 	return fmt.Sprintf("%d:%d", cord[0], cord[1])
 }
@@ -375,114 +320,88 @@ func DebugMapAndLocations(maze map[int]map[int]bool, locs [][]int, w, h int) {
 	fmt.Println("---")
 }
 
-func ComputeSolutionTwo(data []byte) int64 {
-	maze, start, exit, w, h := parseMaze(data)
-
-	most_expensive_destination := 0
-	destcosts := map[int]map[int]int{}
-
-	dests := make(chan []int)
-	donedests := make(chan struct{})
-
-	go func() {
-		for dst := range dests {
-			destcosts[dst[0]][dst[1]] = dst[2]
-			if dst[2] > most_expensive_destination {
-				most_expensive_destination = dst[2]
-			}
-		}
-		donedests <- struct{}{}
-	}()
-
-	wg := sync.WaitGroup{}
-	for x, mx := range maze {
-		destcosts[x] = map[int]int{}
-		for y := range mx {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				if x != exit[0] && y != exit[1] {
-					scr, _ := a_star(exit, []int{x, y}, maze, heuristic, []int{exit[0] - 1, exit[1]})
-					dests <- []int{x, y, scr}
-				}
-			}()
-		}
+func can_visit(visited map[string]*int64, d, i, j int, score int64) bool {
+	prev_score := visited[fmt.Sprintf("%d,%d,%d", d, i, j)]
+	if prev_score != nil && *prev_score < score {
+		return false
 	}
-	wg.Wait()
-	close(dests)
-	<-donedests
-
-	hh := func(self string, goal []int) int {
-		self_cord := cord_string(self)
-
-		return most_expensive_destination - destcosts[self_cord[0]][self_cord[1]]
-	}
-
-	best_score, first_route := a_star(start, exit, maze, hh, []int{start[0] - 1, start[1]})
-
-	type routescore struct {
-		route [][]int
-		score int
-	}
-
-	routescores := make(chan routescore)
-
-	scoredroutes := map[int][][]int{}
-
-	go func() {
-		for r := range routescores {
-			if r.score != -10 && r.score <= best_score {
-				best_score = r.score
-				scoredroutes[r.score] = append(scoredroutes[r.score], r.route...)
-			}
-		}
-		donedests <- struct{}{}
-	}()
-	wg2 := sync.WaitGroup{}
-	// go back through the successful route, block the maze at each, check for score
-	for _, cord := range first_route {
-		wg2.Add(1)
-		go func() {
-			defer wg2.Done()
-			mpcpy := map[int]map[int]bool{}
-			for x, mp := range maze {
-				mpcpy[x] = map[int]bool{}
-				for y, bl := range mp {
-					if x == cord[0] && y == cord[1] {
-						mpcpy[x][y] = false
-					} else {
-						mpcpy[x][y] = bl
-					}
-				}
-			}
-
-			scr, rt := a_star(start, exit, mpcpy, hh, []int{start[0] - 1, start[1]})
-			routescores <- routescore{
-				rt, scr,
-			}
-		}()
-
-	}
-	wg2.Wait()
-	close(routescores)
-	<-donedests
-	deduped_all_points := [][]int{}
-
-	for _, pnt := range scoredroutes[best_score] {
-		if !slices.ContainsFunc(deduped_all_points, func(ap []int) bool {
-			return ap[0] == pnt[0] && ap[1] == pnt[1]
-		}) {
-			deduped_all_points = append(deduped_all_points, pnt)
-		}
-	}
-
-	DebugMapAndLocations(maze, deduped_all_points, w, h)
-
-	return int64(len(deduped_all_points))
+	visited[fmt.Sprintf("%d,%d,%d", d, i, j)] = &score
+	return true
 }
 
-// func is_corner(one, two, three []int) bool {
-// 	x := one[0] + two[0] + three[0]
-// 	y := one[1] + two[1] + three[1]
-// 	return x != 0 && y != 0
-// }
+type heapitem struct {
+	score int64
+	d     int
+	x     int
+	y     int
+	path  [][]int
+}
+
+func ComputeSolutionTwo(data []byte) int64 {
+	maze, start, exit, _, _ := parseMaze(data)
+	visited := map[string]*int64{}
+	directions := [][]int{{1, 0}, {0, 1}, {-1, 0}, {0, -1}}
+	heap := []heapitem{{0, 0, start[0], start[1], [][]int{}}}
+	lowest_score := int64(0)
+	winning_paths := map[int64]map[string]bool{}
+	for len(heap) > 0 {
+		var hi heapitem
+		if len(heap) > 1 {
+			hi, heap = heap[0], heap[1:]
+		} else {
+			hi, heap = heap[0], []heapitem{}
+		}
+		score, d, x, y, path := hi.score, hi.d, hi.x, hi.y, hi.path
+		if lowest_score != 0 && lowest_score < score {
+			continue
+		}
+		if x == exit[0] && y == exit[1] {
+			lowest_score = score
+			if winning_paths[lowest_score] == nil {
+				winning_paths[lowest_score] = map[string]bool{}
+			}
+			for _, p := range path {
+				winning_paths[lowest_score][fmt.Sprintf("%d,%d", p[0], p[1])] = true
+			}
+			continue
+		}
+		if !can_visit(visited, d, x, y, score) {
+			continue
+		}
+		xx := x + directions[d][0]
+		yy := y + directions[d][1]
+		if maze[xx][yy] && can_visit(visited, d, xx, yy, score+1) {
+			heap = append(heap, heapitem{score + 1, d, xx, yy, append(path, []int{x, y})})
+		}
+		left := 0
+		switch d {
+		case 0:
+			left = 1
+		case 1:
+			left = 2
+		case 2:
+			left = 3
+		case 3:
+			left = 0
+		}
+		if can_visit(visited, left, x, y, score+1000) {
+			heap = append(heap, heapitem{score + 1000, left, x, y, append([][]int{}, path...)})
+		}
+		right := 0
+		switch d {
+		case 0:
+			right = 3
+		case 1:
+			right = 0
+		case 2:
+			right = 1
+		case 3:
+			right = 2
+		}
+		if can_visit(visited, right, x, y, score+1000) {
+			heap = append(heap, heapitem{score + 1000, right, x, y, append([][]int{}, path...)})
+		}
+	}
+	//DebugMapAndLocations(maze, locs, w, h)
+	return int64(len(winning_paths[lowest_score]) + 1)
+}
