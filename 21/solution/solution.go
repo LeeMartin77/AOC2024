@@ -1,6 +1,7 @@
 package solution
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -63,8 +64,20 @@ func (cc *ComCache) TypeCommmandPad(cmd string) string {
 	return typeIntoPad(cmd, cmdmap, []int{cmdmap['A'][0], cmdmap['A'][1]}, "")
 }
 
-func getCommandSequence(cmd rune, keyp map[rune][]int, pos []int) string {
+var memo_cmd = make(map[string]string)
+var memo_pos = make(map[string][]int)
 
+func memokey(cmd rune, keyp map[rune][]int, pos []int) string {
+	return fmt.Sprintf("%v::%v::%v", cmd, keyp, pos)
+}
+
+func getCommandSequence(cmd rune, keyp map[rune][]int, pos []int) string {
+	mk := memokey(cmd, keyp, pos)
+	if val, ok := memo_cmd[mk]; ok {
+		pos[0] = memo_pos[mk][0]
+		pos[1] = memo_pos[mk][1]
+		return val
+	}
 	target_pos := keyp[cmd]
 
 	xadj := pos[0] - target_pos[0]
@@ -109,6 +122,8 @@ func getCommandSequence(cmd rune, keyp map[rune][]int, pos []int) string {
 	} else {
 		new_com += horiz + vert + "A"
 	}
+	memo_cmd[mk] = new_com
+	memo_pos[mk] = []int{pos[0], pos[1]}
 	return new_com
 }
 
@@ -143,7 +158,10 @@ func GoThroughRobotsAndGetComplexity(cmd string, num_bots int) int64 {
 	commcache := ComCache{
 		cache: map[string]*string{},
 	}
-	for range num_bots - 1 {
+	for i := range num_bots - 1 {
+		fmt.Println(i)
+		fmt.Println(len(comput))
+
 		comput = commcache.TypeCommmandPad(comput)
 	}
 	return GetNumber(cmd) * int64(len(comput))
@@ -163,7 +181,6 @@ func ComputeSolutionTwo(data []byte) int64 {
 	inpts := strings.Split(string(data), "\n")
 	acc := int64(0)
 	for _, inp := range inpts {
-		// we'll just do it in the loop for P1
 		acc += GoThroughRobotsAndGetComplexity(inp, 25)
 	}
 	return acc
