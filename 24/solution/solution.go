@@ -1,6 +1,7 @@
 package solution
 
 import (
+	"fmt"
 	"slices"
 	"strconv"
 	"strings"
@@ -162,14 +163,198 @@ func ComputeSolutionOne(data []byte) int64 {
 	return res
 }
 
-func ComputeSolutionTwo(data []byte) int64 {
-	// We want an "out register"
-	// get the initial x/y values, and add them - that's our target
-	// we then turn that into it's bitmask - might just use strings for sanity
+func compute(wiring map[string]*Wire, gates map[string]*Gate, hot []string, tgt int64) error {
 	// our "out register" then is all the Z wires
-	// we then start swapping the (number of) output wires swapped. (go func this)
-	// if it fails at any point on the out register, abort that "config"
-	// if it succeeds, that's the correct setup.
-	// then, order swapped wires alphabetically, and join with commas
-	panic("unimplemented")
+	zds := []struct {
+		id string
+		bl *Wire
+	}{}
+	for id, str := range wiring {
+		if id[0] == 'z' {
+			zds = append(zds, struct {
+				id string
+				bl *Wire
+			}{id, str})
+		}
+	}
+	slices.SortFunc(zds, func(a, b struct {
+		id string
+		bl *Wire
+	}) int {
+		return strings.Compare(b.id, a.id)
+	})
+	out_register := []*Wire{}
+	for _, z := range zds {
+		out_register = append(out_register, z.bl)
+	}
+
+	// we then turn tgt into it's bitmask
+	bmsk := strconv.FormatInt(tgt, 2)
+	expct := []bool{}
+	for _, rn := range bmsk {
+		expct = append(expct, rn == '1')
+	}
+
+	for {
+		gates_to_fire := map[string]*Gate{}
+		for id, gt := range gates {
+			for _, lt := range hot {
+				for _, rt := range hot[1:] {
+					if gt.Left == wiring[lt] && gt.Right == wiring[rt] {
+						gates_to_fire[id] = gt
+					} else if gt.Left == wiring[rt] && gt.Right == wiring[lt] {
+						gates_to_fire[id] = gt
+					}
+				}
+			}
+		}
+		new_hot := []string{}
+		for id, gt := range gates_to_fire {
+			new_hot = append(new_hot, gt.Fire()...)
+			delete(gates, id)
+		}
+		new_hot = append(hot, new_hot...)
+		hot = []string{}
+	outer:
+		for _, ht := range new_hot {
+			for _, gt := range gates {
+				if gt.Left == wiring[ht] || gt.Right == wiring[ht] {
+					hot = append(hot, ht)
+					continue outer
+				}
+			}
+		}
+		for i, o := range out_register {
+
+			if o.State != nil && *o.State != expct[i] {
+				fmt.Println(bmsk)
+				for _, oo := range out_register {
+					if oo.State == nil {
+						fmt.Print("X")
+						continue
+					}
+					if *oo.State {
+
+						fmt.Print("1")
+					} else {
+
+						fmt.Print("0")
+					}
+				}
+				fmt.Print("\n")
+				fmt.Println(i)
+				return fmt.Errorf("unexpected bit")
+			}
+		}
+		if len(gates) == 0 {
+			break
+		}
+	}
+	return nil
+}
+
+func ComputeSolutionTwo(data []byte, swaps int) string {
+	// We want an "out register"
+
+	// get the initial x/y values, and add them - that's our target
+	wiring_init, _, _ := parse(append([]byte{}, data...))
+	x, y, tgt := int64(0), int64(0), int64(0)
+
+	xds := []struct {
+		id string
+		bl bool
+	}{}
+	yds := []struct {
+		id string
+		bl bool
+	}{}
+	for id, str := range wiring_init {
+		if id[0] == 'x' && str.State != nil {
+			xds = append(xds, struct {
+				id string
+				bl bool
+			}{id, *str.State})
+		}
+		if id[0] == 'y' && str.State != nil {
+			yds = append(yds, struct {
+				id string
+				bl bool
+			}{id, *str.State})
+		}
+	}
+	slices.SortFunc(xds, func(a, b struct {
+		id string
+		bl bool
+	}) int {
+		return strings.Compare(a.id, b.id)
+	})
+	slices.SortFunc(yds, func(a, b struct {
+		id string
+		bl bool
+	}) int {
+		return strings.Compare(a.id, b.id)
+	})
+	str := ""
+	for _, bl := range xds {
+		if bl.bl {
+			str += "1"
+		} else {
+			str += "0"
+		}
+	}
+	x, _ = strconv.ParseInt(str, 2, 64)
+
+	str = ""
+	for _, bl := range yds {
+		if bl.bl {
+			str += "1"
+		} else {
+			str += "0"
+		}
+	}
+	y, _ = strconv.ParseInt(str, 2, 64)
+
+	tgt = x + y
+
+	fmt.Printf("X: %d\n", x)
+	fmt.Printf("Y: %d\n", y)
+	fmt.Printf("T: %d\n", tgt)
+
+	result := make(chan []string)
+	go func() {
+		i := 0
+		for {
+			go func() {
+				i += 1
+				ii := i
+				wiring, gates, hot := parse(append([]byte{}, data...))
+				// swap some wires
+				// list all wires that are "outputs"
+
+				// select swaps of them
+
+				// this is what a swap looks like
+				// delete(gates["x00:AND:y00"].Out, "z05")
+				// delete(gates["x05:AND:y05"].Out, "z00")
+				// gates["x00:AND:y00"].Out["z00"] = wiring["z00"]
+				// gates["x05:AND:y05"].Out["z05"] = wiring["z05"]
+
+				// TODO: This needs to be the IDs of all wires that were swapped
+				swps := []string{}
+
+				err := compute(wiring, gates, hot, tgt)
+				if err == nil {
+					result <- swps
+				} else {
+					fmt.Printf("%d: %s\n", ii, err)
+				}
+			}()
+		}
+	}()
+	for res := range result {
+		// we only want the first anyway
+		slices.Sort(res)
+		return strings.Join(res, ",")
+	}
+	panic("supposedly impossible")
 }

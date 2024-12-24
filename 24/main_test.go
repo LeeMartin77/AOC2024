@@ -74,8 +74,26 @@ tnw OR pbm -> gnj`
 	assert.Equal(t, int64(2024), res)
 }
 
-func xTestPhaseTwo(t *testing.T) {
-	teststring := ``
-	res := solution.ComputeSolutionTwo([]byte(teststring))
-	assert.Equal(t, int64(0), res)
+func TestPhaseTwo(t *testing.T) {
+	teststring := `x00: 0
+x01: 1
+x02: 0
+x03: 1
+x04: 0
+x05: 1
+y00: 0
+y01: 0
+y02: 1
+y03: 1
+y04: 0
+y05: 1
+
+x00 AND y00 -> z05
+x01 AND y01 -> z02
+x02 AND y02 -> z01
+x03 AND y03 -> z03
+x04 AND y04 -> z04
+x05 AND y05 -> z00`
+	solution.ComputeSolutionTwo([]byte(teststring), 2)
+	//assert.Equal(t, "z00,z01,z02,z05", res)
 }
