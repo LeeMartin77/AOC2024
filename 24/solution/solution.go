@@ -68,10 +68,6 @@ func parse(data []byte) (map[string]*Wire, map[string]*Gate, []string) {
 }
 
 func (gt *Gate) Fire() []string {
-	if gt.Fired {
-		return []string{}
-	}
-	gt.Fired = true
 	hot := true
 	cold := false
 	heated := []string{}
@@ -104,34 +100,25 @@ func (gt *Gate) Fire() []string {
 func ComputeSolutionOne(data []byte) int64 {
 	wiring, gates, hot := parse(data)
 	for {
-		gates_to_fire := []*Gate{}
-		for _, lt := range hot {
-			for _, rt := range hot[1:] {
-				for _, gt := range gates {
+		gates_to_fire := map[string]*Gate{}
+		for id, gt := range gates {
+			for _, lt := range hot {
+				for _, rt := range hot[1:] {
 					if gt.Left == wiring[lt] && gt.Right == wiring[rt] {
-						gates_to_fire = append(gates_to_fire, gt)
+						gates_to_fire[id] = gt
 					} else if gt.Left == wiring[rt] && gt.Right == wiring[lt] {
-						gates_to_fire = append(gates_to_fire, gt)
-
+						gates_to_fire[id] = gt
 					}
 				}
 			}
 		}
 		new_hot := []string{}
-		for _, gt := range gates_to_fire {
+		for id, gt := range gates_to_fire {
 			new_hot = append(new_hot, gt.Fire()...)
-		}
-		if len(new_hot) == 0 {
-			break
+			delete(gates, id)
 		}
 		hot = append(hot, new_hot...)
-		remaining := false
-		for _, gt := range gates {
-			if !remaining && !gt.Fired {
-				remaining = true
-			}
-		}
-		if !remaining {
+		if len(gates) == 0 {
 			break
 		}
 	}
