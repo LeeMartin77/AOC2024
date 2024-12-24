@@ -224,31 +224,40 @@ func compute(wiring map[string]*Wire, gates map[string]*Gate, hot []string, tgt 
 				}
 			}
 		}
-		for i, o := range out_register {
-
-			if o.State != nil && *o.State != expct[i] {
-				fmt.Println(bmsk)
-				for _, oo := range out_register {
-					if oo.State == nil {
-						fmt.Print("X")
-						continue
-					}
-					if *oo.State {
-
-						fmt.Print("1")
-					} else {
-
-						fmt.Print("0")
-					}
-				}
-				fmt.Print("\n")
-				fmt.Println(i)
-				return fmt.Errorf("unexpected bit")
-			}
-		}
 		if len(gates) == 0 {
 			break
 		}
+	}
+
+	output := ""
+	for _, oo := range out_register {
+		if oo.State == nil {
+			output += "X"
+			continue
+		}
+		if *oo.State {
+
+			output += "1"
+		} else {
+
+			output += "0"
+		}
+	}
+	nmsm := ""
+	hasError := false
+	for i, o := range out_register {
+		if o.State == nil {
+			nmsm += "_"
+			hasError = true
+		} else if *o.State == expct[i] {
+			nmsm += "O"
+		} else {
+			nmsm += "X"
+			hasError = true
+		}
+	}
+	if hasError {
+		return fmt.Errorf("bmk: %s\nout: %s\nmsm: %s", bmsk, output, nmsm)
 	}
 	return nil
 }
@@ -323,32 +332,18 @@ func ComputeSolutionTwo(data []byte, swaps int) string {
 	result := make(chan []string)
 	go func() {
 		i := 0
+		swps := []string{}
 		for {
-			go func() {
-				i += 1
-				ii := i
-				wiring, gates, hot := parse(append([]byte{}, data...))
-				// swap some wires
-				// list all wires that are "outputs"
+			i += 1
+			ii := i
+			wiring, gates, hot := parse(append([]byte{}, data...))
 
-				// select swaps of them
-
-				// this is what a swap looks like
-				// delete(gates["x00:AND:y00"].Out, "z05")
-				// delete(gates["x05:AND:y05"].Out, "z00")
-				// gates["x00:AND:y00"].Out["z00"] = wiring["z00"]
-				// gates["x05:AND:y05"].Out["z05"] = wiring["z05"]
-
-				// TODO: This needs to be the IDs of all wires that were swapped
-				swps := []string{}
-
-				err := compute(wiring, gates, hot, tgt)
-				if err == nil {
-					result <- swps
-				} else {
-					fmt.Printf("%d: %s\n", ii, err)
-				}
-			}()
+			err := compute(wiring, gates, hot, tgt)
+			if err == nil {
+				result <- swps
+			} else {
+				fmt.Printf("%d: \n%s\n", ii, err)
+			}
 		}
 	}()
 	for res := range result {

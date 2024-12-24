@@ -94,6 +94,6 @@ x02 AND y02 -> z01
 x03 AND y03 -> z03
 x04 AND y04 -> z04
 x05 AND y05 -> z00`
-	solution.ComputeSolutionTwo([]byte(teststring), 2)
-	//assert.Equal(t, "z00,z01,z02,z05", res)
+	res := solution.ComputeSolutionTwo([]byte(teststring), 2)
+	assert.Equal(t, "z00,z01,z02,z05", res)
 }
