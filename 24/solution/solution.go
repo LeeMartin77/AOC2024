@@ -117,7 +117,17 @@ func ComputeSolutionOne(data []byte) int64 {
 			new_hot = append(new_hot, gt.Fire()...)
 			delete(gates, id)
 		}
-		hot = append(hot, new_hot...)
+		new_hot = append(hot, new_hot...)
+		hot = []string{}
+	outer:
+		for _, ht := range new_hot {
+			for _, gt := range gates {
+				if gt.Left == wiring[ht] || gt.Right == wiring[ht] {
+					hot = append(hot, ht)
+					continue outer
+				}
+			}
+		}
 		if len(gates) == 0 {
 			break
 		}
@@ -153,5 +163,13 @@ func ComputeSolutionOne(data []byte) int64 {
 }
 
 func ComputeSolutionTwo(data []byte) int64 {
+	// We want an "out register"
+	// get the initial x/y values, and add them - that's our target
+	// we then turn that into it's bitmask - might just use strings for sanity
+	// our "out register" then is all the Z wires
+	// we then start swapping the (number of) output wires swapped. (go func this)
+	// if it fails at any point on the out register, abort that "config"
+	// if it succeeds, that's the correct setup.
+	// then, order swapped wires alphabetically, and join with commas
 	panic("unimplemented")
 }
